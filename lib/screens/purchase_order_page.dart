@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -12,12 +11,10 @@ class PurchaseOrderPage extends StatefulWidget {
   const PurchaseOrderPage({super.key});
 
   @override
-  State<PurchaseOrderPage> createState() =>
-      _PurchaseOrderPageState();
+  State<PurchaseOrderPage> createState() => _PurchaseOrderPageState();
 }
 
-class _PurchaseOrderPageState
-    extends State<PurchaseOrderPage> {
+class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   final Map<String, bool> selected = {};
   final Map<String, TextEditingController> quantities = {};
 
@@ -51,19 +48,13 @@ class _PurchaseOrderPageState
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('สร้างรายการสั่งซื้อ'),
-      ),
+      appBar: AppBar(title: const Text('สร้างรายการสั่งซื้อ')),
       body: risks.isEmpty
-          ? const Center(
-              child: Text('ยังไม่มีวัตถุดิบที่ต้องสั่งซื้อ'),
-            )
+          ? const Center(child: Text('ยังไม่มีวัตถุดิบที่ต้องสั่งซื้อ'))
           : ListView(
               padding: const EdgeInsets.all(12),
               children: [
-                const Text(
-                  'เลือกรายการและตรวจสอบจำนวนที่ต้องการสั่งซื้อ',
-                ),
+                const Text('เลือกรายการและตรวจสอบจำนวนที่ต้องการสั่งซื้อ'),
                 const SizedBox(height: 8),
                 ...risks.map((risk) {
                   return Card(
@@ -72,12 +63,10 @@ class _PurchaseOrderPageState
                       child: Column(
                         children: [
                           CheckboxListTile(
-                            value:
-                                selected[risk.item.code] ?? false,
+                            value: selected[risk.item.code] ?? false,
                             onChanged: (value) {
                               setState(() {
-                                selected[risk.item.code] =
-                                    value ?? false;
+                                selected[risk.item.code] = value ?? false;
                               });
                             },
                             title: Text(risk.item.name),
@@ -85,21 +74,17 @@ class _PurchaseOrderPageState
                               'คงเหลือ ${risk.item.currentQuantity.toStringAsFixed(2)} ${risk.item.unit}\n'
                               'แนะนำสั่ง ${risk.suggestedOrderQuantity.ceil()} ${risk.item.unit}',
                             ),
-                            controlAffinity:
-                                ListTileControlAffinity.leading,
+                            controlAffinity: ListTileControlAffinity.leading,
                             isThreeLine: true,
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: TextField(
-                              controller:
-                                  quantities[risk.item.code],
+                              controller: quantities[risk.item.code],
                               keyboardType:
                                   const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                                    decimal: true,
+                                  ),
                               decoration: inputDecoration(
                                 'จำนวนที่จะสั่ง (${risk.item.unit})',
                               ),
@@ -113,14 +98,10 @@ class _PurchaseOrderPageState
                 }),
                 const SizedBox(height: 12),
                 FilledButton.icon(
-                  onPressed: saving
-                      ? null
-                      : () => _saveOrder(context, risks),
+                  onPressed: saving ? null : () => _saveOrder(context, risks),
                   icon: const Icon(Icons.save),
                   label: Text(
-                    saving
-                        ? 'กำลังบันทึก...'
-                        : 'บันทึกร่างรายการสั่งซื้อ',
+                    saving ? 'กำลังบันทึก...' : 'บันทึกร่างรายการสั่งซื้อ',
                   ),
                 ),
               ],
@@ -128,10 +109,7 @@ class _PurchaseOrderPageState
     );
   }
 
-  Future<void> _saveOrder(
-    BuildContext context,
-    List<StockRisk> risks,
-  ) async {
+  Future<void> _saveOrder(BuildContext context, List<StockRisk> risks) async {
     final orderItems = <Map<String, Object?>>[];
 
     for (final risk in risks) {
@@ -139,10 +117,8 @@ class _PurchaseOrderPageState
         continue;
       }
 
-      final quantity = double.tryParse(
-            quantities[risk.item.code]?.text.trim() ?? '',
-          ) ??
-          0;
+      final quantity =
+          double.tryParse(quantities[risk.item.code]?.text.trim() ?? '') ?? 0;
 
       if (quantity <= 0) {
         showAppMessage(
@@ -162,26 +138,20 @@ class _PurchaseOrderPageState
     }
 
     if (orderItems.isEmpty) {
-      showAppMessage(
-        context,
-        'กรุณาเลือกสินค้าอย่างน้อย 1 รายการ',
-      );
+      showAppMessage(context, 'กรุณาเลือกสินค้าอย่างน้อย 1 รายการ');
       return;
     }
 
     setState(() => saving = true);
 
     try {
-      final id = await context
-          .read<InventoryProvider>()
-          .createPurchaseOrder(orderItems);
+      final id = await context.read<InventoryProvider>().createPurchaseOrder(
+        orderItems,
+      );
 
       if (!mounted) return;
 
-      showAppMessage(
-        context,
-        'บันทึกร่างรายการสั่งซื้อเลขที่ $id แล้ว',
-      );
+      showAppMessage(context, 'บันทึกร่างรายการสั่งซื้อเลขที่ $id แล้ว');
 
       await showDialog<void>(
         context: context,
@@ -189,8 +159,7 @@ class _PurchaseOrderPageState
           title: Text('ร่างใบสั่งซื้อ #$id'),
           content: SingleChildScrollView(
             child: SelectableText(
-              const JsonEncoder.withIndent('  ')
-                  .convert(orderItems),
+              const JsonEncoder.withIndent('  ').convert(orderItems),
             ),
           ),
           actions: [

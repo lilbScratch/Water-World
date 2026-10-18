@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -42,11 +41,7 @@ class StockAlertPage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _summaryCard(
-                    'สต็อกวิกฤต',
-                    criticalCount,
-                    Colors.red,
-                  ),
+                  child: _summaryCard('สต็อกวิกฤต', criticalCount, Colors.red),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -88,15 +83,12 @@ class StockAlertPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          const PurchaseOrderHistoryPage(),
+                      builder: (_) => const PurchaseOrderHistoryPage(),
                     ),
                   );
                 },
                 icon: const Icon(Icons.receipt_long),
-                label: const Text(
-                  'ดูรายการสั่งซื้อที่บันทึกไว้',
-                ),
+                label: const Text('ดูรายการสั่งซื้อที่บันทึกไว้'),
               ),
             ),
 
@@ -104,58 +96,38 @@ class StockAlertPage extends StatelessWidget {
 
             const Text(
               'รายละเอียดวัตถุดิบ',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
 
             if (provider.stockRisks.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(24),
-                child: Center(
-                  child: Text('ไม่พบข้อมูลวัตถุดิบ'),
-                ),
+                child: Center(child: Text('ไม่พบข้อมูลวัตถุดิบ')),
               ),
 
-            ...provider.stockRisks.map(
-              (risk) => _riskCard(context, risk),
-            ),
+            ...provider.stockRisks.map((risk) => _riskCard(context, risk)),
           ],
         ),
       ),
     );
   }
 
-  Widget _summaryCard(
-    String title,
-    int count,
-    Color color,
-  ) {
+  Widget _summaryCard(String title, int count, Color color) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: color,
-            ),
+            Icon(Icons.warning_amber_rounded, color: color),
             const SizedBox(height: 6),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
             ),
             Text(
               '$count รายการ',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -163,10 +135,7 @@ class StockAlertPage extends StatelessWidget {
     );
   }
 
-  Widget _riskCard(
-    BuildContext context,
-    StockRisk risk,
-  ) {
+  Widget _riskCard(BuildContext context, StockRisk risk) {
     final color = switch (risk.level) {
       StockRiskLevel.normal => Colors.green,
       StockRiskLevel.warning => Colors.orange,
@@ -241,34 +210,24 @@ class StockAlertPage extends StatelessWidget {
     );
   }
 
-  Future<void> _showPolicyDialog(
-    BuildContext context,
-    StockRisk risk,
-  ) async {
+  Future<void> _showPolicyDialog(BuildContext context, StockRisk risk) async {
     final provider = context.read<InventoryProvider>();
 
     await showDialog<void>(
       context: context,
-      builder: (_) => _StockPolicyDialog(
-        risk: risk,
-        provider: provider,
-      ),
+      builder: (_) => _StockPolicyDialog(risk: risk, provider: provider),
     );
   }
 }
 
 class _StockPolicyDialog extends StatefulWidget {
-  const _StockPolicyDialog({
-    required this.risk,
-    required this.provider,
-  });
+  const _StockPolicyDialog({required this.risk, required this.provider});
 
   final StockRisk risk;
   final InventoryProvider provider;
 
   @override
-  State<_StockPolicyDialog> createState() =>
-      _StockPolicyDialogState();
+  State<_StockPolicyDialog> createState() => _StockPolicyDialogState();
 }
 
 class _StockPolicyDialogState extends State<_StockPolicyDialog> {
@@ -286,24 +245,16 @@ class _StockPolicyDialogState extends State<_StockPolicyDialog> {
 
     final item = widget.risk.item;
 
-    leadController = TextEditingController(
-      text: '${item.leadTimeDays}',
-    );
+    leadController = TextEditingController(text: '${item.leadTimeDays}');
 
-    targetController = TextEditingController(
-      text: '${item.targetDays}',
-    );
+    targetController = TextEditingController(text: '${item.targetDays}');
 
     safetyController = TextEditingController(
-      text: item.safetyStock > 0
-          ? '${item.safetyStock}'
-          : '',
+      text: item.safetyStock > 0 ? '${item.safetyStock}' : '',
     );
 
     reorderController = TextEditingController(
-      text: item.minQuantity > 0
-          ? '${item.minQuantity}'
-          : '',
+      text: item.minQuantity > 0 ? '${item.minQuantity}' : '',
     );
 
     z = item.serviceLevelZ;
@@ -321,24 +272,16 @@ class _StockPolicyDialogState extends State<_StockPolicyDialog> {
   Future<void> _save() async {
     if (saving) return;
 
-    final lead = int.tryParse(
-      leadController.text.trim(),
-    );
+    final lead = int.tryParse(leadController.text.trim());
 
-    final target = int.tryParse(
-      targetController.text.trim(),
-    );
+    final target = int.tryParse(targetController.text.trim());
 
     final safetyText = safetyController.text.trim();
     final reorderText = reorderController.text.trim();
 
-    final safety = safetyText.isEmpty
-        ? 0.0
-        : double.tryParse(safetyText);
+    final safety = safetyText.isEmpty ? 0.0 : double.tryParse(safetyText);
 
-    final reorder = reorderText.isEmpty
-        ? 0.0
-        : double.tryParse(reorderText);
+    final reorder = reorderText.isEmpty ? 0.0 : double.tryParse(reorderText);
 
     if (lead == null ||
         target == null ||
@@ -348,10 +291,7 @@ class _StockPolicyDialogState extends State<_StockPolicyDialog> {
         reorder == null ||
         safety < 0 ||
         reorder < 0) {
-      showAppMessage(
-        context,
-        'กรุณาตรวจสอบค่าที่กรอก',
-      );
+      showAppMessage(context, 'กรุณาตรวจสอบค่าที่กรอก');
       return;
     }
 
@@ -371,10 +311,7 @@ class _StockPolicyDialogState extends State<_StockPolicyDialog> {
 
       Navigator.of(context).pop();
 
-      showAppMessage(
-        context,
-        'บันทึกการตั้งค่าแล้ว',
-      );
+      showAppMessage(context, 'บันทึกการตั้งค่าแล้ว');
     } catch (error) {
       if (mounted) {
         showAppMessage(context, '$error');
@@ -397,9 +334,7 @@ class _StockPolicyDialogState extends State<_StockPolicyDialog> {
             TextField(
               controller: leadController,
               keyboardType: TextInputType.number,
-              decoration: inputDecoration(
-                'ระยะเวลารอสินค้า (วัน)',
-              ),
+              decoration: inputDecoration('ระยะเวลารอสินค้า (วัน)'),
             ),
 
             const SizedBox(height: 10),
@@ -407,17 +342,14 @@ class _StockPolicyDialogState extends State<_StockPolicyDialog> {
             TextField(
               controller: targetController,
               keyboardType: TextInputType.number,
-              decoration: inputDecoration(
-                'จำนวนวันที่ต้องการสำรอง',
-              ),
+              decoration: inputDecoration('จำนวนวันที่ต้องการสำรอง'),
             ),
 
             const SizedBox(height: 10),
 
             TextField(
               controller: safetyController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(
+              keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: inputDecoration(
@@ -429,35 +361,21 @@ class _StockPolicyDialogState extends State<_StockPolicyDialog> {
 
             TextField(
               controller: reorderController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(
+              keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: inputDecoration(
-                'จุดสั่งซื้อเอง (ว่าง = อัตโนมัติ)',
-              ),
+              decoration: inputDecoration('จุดสั่งซื้อเอง (ว่าง = อัตโนมัติ)'),
             ),
 
             const SizedBox(height: 10),
 
             DropdownButtonFormField<double>(
               value: z,
-              decoration: inputDecoration(
-                'ระดับการบริการ',
-              ),
+              decoration: inputDecoration('ระดับการบริการ'),
               items: const [
-                DropdownMenuItem(
-                  value: 1.28,
-                  child: Text('90%'),
-                ),
-                DropdownMenuItem(
-                  value: 1.65,
-                  child: Text('95%'),
-                ),
-                DropdownMenuItem(
-                  value: 2.33,
-                  child: Text('99%'),
-                ),
+                DropdownMenuItem(value: 1.28, child: Text('90%')),
+                DropdownMenuItem(value: 1.65, child: Text('95%')),
+                DropdownMenuItem(value: 2.33, child: Text('99%')),
               ],
               onChanged: saving
                   ? null
@@ -472,16 +390,12 @@ class _StockPolicyDialogState extends State<_StockPolicyDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: saving
-              ? null
-              : () => Navigator.pop(context),
+          onPressed: saving ? null : () => Navigator.pop(context),
           child: const Text('ยกเลิก'),
         ),
         FilledButton(
           onPressed: saving ? null : _save,
-          child: Text(
-            saving ? 'กำลังบันทึก...' : 'บันทึก',
-          ),
+          child: Text(saving ? 'กำลังบันทึก...' : 'บันทึก'),
         ),
       ],
     );

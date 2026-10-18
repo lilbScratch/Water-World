@@ -1,17 +1,37 @@
-
 import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:sqflite/sqflite.dart';
 
 import '../models.dart';
+import '../order_models.dart';
+import '../thai_labels.dart';
 import 'app_db.dart';
+
+part 'order_operations.dart';
+part 'analytics_operations.dart';
+part 'planning_data_operations.dart';
 
 class StockRepository {
   final AppDb appDb;
 
-  StockRepository({AppDb? appDb})
-      : appDb = appDb ?? AppDb.instance;
+  StockRepository({AppDb? appDb}) : appDb = appDb ?? AppDb.instance;
+
+  Future<void> _queueSync(
+    DatabaseExecutor db, {
+    required String entityType,
+    required String entityId,
+    required String operation,
+    required Map<String, Object?> payload,
+  }) async {
+    await db.insert('sync_queue', {
+      'entity_type': entityType,
+      'entity_id': entityId,
+      'operation': operation,
+      'payload': jsonEncode(payload),
+      'created_at': DateTime.now().toIso8601String(),
+    });
+  }
 
   // อ่านรายการสินค้า
   Future<List<Item>> items({String? type}) async {
@@ -20,15 +40,12 @@ class StockRepository {
     String? where;
     List<Object?>? whereArgs;
 
-    if (type == 'raw' ||
-        type == 'raw_material' ||
-        type == 'วัตถุดิบ') {
+    if (type == 'raw' || type == 'raw_material' || type == 'วัตถุดิบ') {
       where = "item_type IN ('raw', 'raw_material', 'วัตถุดิบ')";
     } else if (type == 'finished' ||
         type == 'finished_good' ||
         type == 'สินค้าสำเร็จรูป') {
-      where =
-          "item_type IN ('finished', 'finished_good', 'สินค้าสำเร็จรูป')";
+      where = "item_type IN ('finished', 'finished_good', 'สินค้าสำเร็จรูป')";
     } else if (type != null) {
       where = 'item_type = ?';
       whereArgs = [type];
@@ -47,8 +64,7 @@ class StockRepository {
   // นับจำนวนสินค้า
   Future<int> countItems() async {
     final db = await appDb.database;
-    final result =
-        await db.rawQuery('SELECT COUNT(*) AS total FROM items');
+    final result = await db.rawQuery('SELECT COUNT(*) AS total FROM items');
 
     return (result.first['total'] as num).toInt();
   }
@@ -110,11 +126,7 @@ class StockRepository {
   }
 
   // รับสินค้าเข้าคลัง
-  Future<void> receive(
-    String code,
-    double quantity, {
-    String note = '',
-  }) async {
+  Future<void> receive(String code, double quantity, {String note = ''}) async {
     if (quantity <= 0) {
       throw AppException('จำนวนรับเข้าต้องมากกว่า 0');
     }
@@ -163,13 +175,9 @@ class StockRepository {
     DatabaseExecutor db,
     String tableName,
   ) async {
-    final result = await db.rawQuery(
-      'PRAGMA table_info("$tableName")',
-    );
+    final result = await db.rawQuery('PRAGMA table_info("$tableName")');
 
-    return result
-        .map((row) => row['name'] as String)
-        .toSet();
+    return result.map((row) => row['name'] as String).toSet();
   }
 
   // สร้างแถวประวัติให้ตรงกับคอลัมน์ที่มีอยู่ในฐานข้อมูล
@@ -238,9 +246,13 @@ class StockRepository {
       final row = rows.first;
       final current = (row['current_quantity'] as num).toDouble();
       final next = current + delta;
+      final reserved = (row['reserved_quantity'] as num?)?.toDouble() ?? 0;
 
       if (next < 0) {
         throw AppException('สต๊อกไม่เพียงพอ');
+      }
+      if (delta < 0 && next < reserved) {
+        throw AppException('Some stock is reserved for confirmed B2B orders.');
       }
 
       await txn.update(
@@ -260,6 +272,19 @@ class StockRepository {
         after: next,
         note: note,
         itemId: row['id'],
+      );
+      await _queueSync(
+        txn,
+        entityType: 'stock',
+        entityId: code,
+        operation: 'adjust',
+        payload: {
+          'code': code,
+          'delta': delta,
+          'balance': next,
+          'type': type,
+          'note': note,
+        },
       );
     });
   }
@@ -301,8 +326,7 @@ class StockRepository {
       // ตรวจสอบวัตถุดิบก่อนตัดสต๊อก
       for (final recipe in recipes) {
         final rawCode = recipe['material_code'] as String;
-        final needed =
-            (recipe['quantity'] as num).toDouble() * quantity;
+        final needed = (recipe['quantity'] as num).toDouble() * quantity;
 
         final rawRows = await txn.query(
           'items',
@@ -315,21 +339,19 @@ class StockRepository {
           throw AppException('ไม่พบวัตถุดิบ $rawCode');
         }
 
-        final current =
-            (rawRows.first['current_quantity'] as num).toDouble();
+        final current = (rawRows.first['current_quantity'] as num).toDouble();
 
-        if (current < needed) {
-          throw AppException(
-            'วัตถุดิบ ${rawRows.first['name']} ไม่เพียงพอ',
-          );
+        final reserved =
+            (rawRows.first['reserved_quantity'] as num?)?.toDouble() ?? 0;
+        if (current - reserved < needed) {
+          throw AppException('วัตถุดิบ ${rawRows.first['name']} ไม่เพียงพอ');
         }
       }
 
       // ตัดวัตถุดิบ
       for (final recipe in recipes) {
         final rawCode = recipe['material_code'] as String;
-        final needed =
-            (recipe['quantity'] as num).toDouble() * quantity;
+        final needed = (recipe['quantity'] as num).toDouble() * quantity;
 
         final rawRows = await txn.query(
           'items',
@@ -339,8 +361,7 @@ class StockRepository {
         );
 
         final raw = rawRows.first;
-        final current =
-            (raw['current_quantity'] as num).toDouble();
+        final current = (raw['current_quantity'] as num).toDouble();
         final next = current - needed;
 
         await txn.update(
@@ -365,8 +386,7 @@ class StockRepository {
 
       // เพิ่มสินค้าสำเร็จรูป
       final finished = finishedRows.first;
-      final currentFinished =
-          (finished['current_quantity'] as num).toDouble();
+      final currentFinished = (finished['current_quantity'] as num).toDouble();
       final nextFinished = currentFinished + quantity;
 
       await txn.update(
@@ -396,6 +416,17 @@ class StockRepository {
         'note': note,
         'created_at': DateTime.now().toIso8601String(),
       });
+      await _queueSync(
+        txn,
+        entityType: 'production',
+        entityId: '$finishedCode:${DateTime.now().microsecondsSinceEpoch}',
+        operation: 'create',
+        payload: {
+          'product_code': finishedCode,
+          'quantity': quantity,
+          'note': note,
+        },
+      );
     });
   }
 
@@ -411,15 +442,12 @@ class StockRepository {
         ? 'tx_type'
         : 'transaction_type';
 
-    final rows = await db.rawQuery(
-      '''
+    final rows = await db.rawQuery('''
       SELECT * FROM stock_transactions
       ${filter == 'all' ? '' : 'WHERE $typeColumn = ?'}
       ORDER BY id DESC
       LIMIT ?
-      ''',
-      filter == 'all' ? [limit] : [filter, limit],
-    );
+      ''', filter == 'all' ? [limit] : [filter, limit]);
 
     return rows.map(StockTx.fromMap).toList();
   }
@@ -436,12 +464,13 @@ class StockRepository {
     final db = await appDb.database;
     final columns = await _tableColumns(db, 'stock_transactions');
 
-    final codeColumn =
-        columns.contains('item_code') ? 'item_code' : null;
-    final typeColumn =
-        columns.contains('tx_type') ? 'tx_type' : 'transaction_type';
-    final quantityColumn =
-        columns.contains('quantity') ? 'quantity' : 'quantity_change';
+    final codeColumn = columns.contains('item_code') ? 'item_code' : null;
+    final typeColumn = columns.contains('tx_type')
+        ? 'tx_type'
+        : 'transaction_type';
+    final quantityColumn = columns.contains('quantity')
+        ? 'quantity'
+        : 'quantity_change';
 
     if (codeColumn == null) {
       throw AppException(
@@ -490,20 +519,16 @@ class StockRepository {
       values.add(daily[date] ?? 0);
     }
 
-    final average =
-        values.fold<double>(0, (sum, value) => sum + value) / days;
+    final average = values.fold<double>(0, (sum, value) => sum + value) / days;
 
-    final variance = values.fold<double>(
+    final variance =
+        values.fold<double>(
           0,
-          (sum, value) =>
-              sum + math.pow(value - average, 2).toDouble(),
+          (sum, value) => sum + math.pow(value - average, 2).toDouble(),
         ) /
         days;
 
-    return {
-      'average': average,
-      'stddev': math.sqrt(variance),
-    };
+    return {'average': average, 'stddev': math.sqrt(variance)};
   }
 
   // บันทึกนโยบาย Safety Stock
@@ -532,9 +557,7 @@ class StockRepository {
   }
 
   // สร้างใบสั่งซื้อแบบร่าง
-  Future<int> createPurchaseOrder(
-    List<Map<String, Object?>> items,
-  ) async {
+  Future<int> createPurchaseOrder(List<Map<String, Object?>> items) async {
     final db = await appDb.database;
 
     return db.insert('purchase_orders', {
@@ -548,9 +571,37 @@ class StockRepository {
   Future<List<Map<String, Object?>>> purchaseOrders() async {
     final db = await appDb.database;
 
-    return db.query(
-      'purchase_orders',
-      orderBy: 'id DESC',
-    );
+    return db.query('purchase_orders', orderBy: 'id DESC');
+  }
+
+  Future<int> addB2BCustomer({
+    required String name,
+    String contactPerson = '',
+    String phone = '',
+    String address = '',
+  }) async {
+    final db = await appDb.database;
+    return db.transaction((txn) async {
+      final id = await txn.insert('b2b_customers', {
+        'name': name.trim(),
+        'contact_person': contactPerson.trim(),
+        'phone': phone.trim(),
+        'address': address.trim(),
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      await _queueSync(
+        txn,
+        entityType: 'b2b_customer',
+        entityId: '$id',
+        operation: 'create',
+        payload: {
+          'name': name.trim(),
+          'contact_person': contactPerson.trim(),
+          'phone': phone.trim(),
+          'address': address.trim(),
+        },
+      );
+      return id;
+    });
   }
 }

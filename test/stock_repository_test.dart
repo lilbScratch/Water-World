@@ -1,4 +1,3 @@
-
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -19,9 +18,7 @@ void main() {
   });
 
   setUp(() async {
-    testDir = await Directory.systemTemp.createTemp(
-      'water_world_test_',
-    );
+    testDir = await Directory.systemTemp.createTemp('water_world_test_');
 
     testDb = AppDb.forTesting(
       factory: databaseFactoryFfi,
@@ -65,11 +62,7 @@ void main() {
 
   group('StockRepository', () {
     test('รับสินค้าเข้าคลังแล้วจำนวนคงเหลือเพิ่มขึ้น', () async {
-      await repo.receive(
-        'PET_350',
-        120,
-        note: 'ทดสอบรับสินค้า',
-      );
+      await repo.receive('PET_350', 120, note: 'ทดสอบรับสินค้า');
 
       final result = await db.query(
         'items',
@@ -79,20 +72,13 @@ void main() {
       );
 
       expect(result, isNotEmpty);
-      expect(
-        (result.first['current_quantity'] as num).toDouble(),
-        120,
-      );
+      expect((result.first['current_quantity'] as num).toDouble(), 120);
     });
 
     test('ผลิตสินค้าแล้ววัตถุดิบลดและสินค้าสำเร็จรูปเพิ่ม', () async {
       await repo.receive('PET_350', 20);
 
-      await repo.produce(
-        'WATER_350_12',
-        10,
-        note: 'ทดสอบการผลิต',
-      );
+      await repo.produce('WATER_350_12', 10, note: 'ทดสอบการผลิต');
 
       final rawResult = await db.query(
         'items',
@@ -108,24 +94,15 @@ void main() {
         whereArgs: ['WATER_350_12'],
       );
 
-      expect(
-        (rawResult.first['current_quantity'] as num).toDouble(),
-        10,
-      );
+      expect((rawResult.first['current_quantity'] as num).toDouble(), 10);
 
-      expect(
-        (finishedResult.first['current_quantity'] as num).toDouble(),
-        10,
-      );
+      expect((finishedResult.first['current_quantity'] as num).toDouble(), 10);
     });
 
     test('วัตถุดิบไม่เพียงพอแล้วการผลิตต้องไม่สำเร็จ', () async {
       await repo.receive('PET_350', 2);
 
-      await expectLater(
-        repo.produce('WATER_350_12', 10),
-        throwsA(anything),
-      );
+      await expectLater(repo.produce('WATER_350_12', 10), throwsA(anything));
 
       final result = await db.query(
         'items',
@@ -134,20 +111,13 @@ void main() {
         whereArgs: ['PET_350'],
       );
 
-      expect(
-        (result.first['current_quantity'] as num).toDouble(),
-        2,
-      );
+      expect((result.first['current_quantity'] as num).toDouble(), 2);
     });
 
     test('เบิกสินค้าแล้วจำนวนคงเหลือลดลง', () async {
       await repo.receive('WATER_350_12', 10);
 
-      await repo.dispatch(
-        'WATER_350_12',
-        4,
-        note: 'ทดสอบเบิกสินค้า',
-      );
+      await repo.dispatch('WATER_350_12', 4, note: 'ทดสอบเบิกสินค้า');
 
       final result = await db.query(
         'items',
@@ -156,19 +126,13 @@ void main() {
         whereArgs: ['WATER_350_12'],
       );
 
-      expect(
-        (result.first['current_quantity'] as num).toDouble(),
-        6,
-      );
+      expect((result.first['current_quantity'] as num).toDouble(), 6);
     });
 
     test('เบิกสินค้าเกินจำนวนคงเหลือแล้วต้องไม่สำเร็จ', () async {
       await repo.receive('WATER_350_12', 2);
 
-      await expectLater(
-        repo.dispatch('WATER_350_12', 5),
-        throwsA(anything),
-      );
+      await expectLater(repo.dispatch('WATER_350_12', 5), throwsA(anything));
     });
   });
 }

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -47,9 +46,7 @@ class HistoryPage extends StatelessWidget {
           ),
           Expanded(
             child: provider.historyItems.isEmpty
-                ? const Center(
-                    child: Text('ยังไม่มีประวัติการเคลื่อนไหว'),
-                  )
+                ? const Center(child: Text('ยังไม่มีประวัติการเคลื่อนไหว'))
                 : ListView.builder(
                     itemCount: provider.historyItems.length,
                     itemBuilder: (context, index) {
@@ -61,9 +58,7 @@ class HistoryPage extends StatelessWidget {
                           isPositive
                               ? Icons.add_circle_outline
                               : Icons.remove_circle_outline,
-                          color: isPositive
-                              ? Colors.green
-                              : Colors.red,
+                          color: isPositive ? Colors.green : Colors.red,
                         ),
                         title: Text(tx.itemName),
                         subtitle: Text(

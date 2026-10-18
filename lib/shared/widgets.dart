@@ -27,21 +27,18 @@ Future<bool> trySave(
     messenger.showSnackBar(SnackBar(content: Text(msg)));
     return true;
   } catch (e) {
-    messenger
-        .showSnackBar(SnackBar(content: Text('$e'), backgroundColor: errColor));
+    messenger.showSnackBar(
+      SnackBar(content: Text('$e'), backgroundColor: errColor),
+    );
     return false;
   }
 }
-
 
 void showAppMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
 }
 
@@ -49,10 +46,6 @@ InputDecoration inputDecoration(String label) {
   return InputDecoration(
     labelText: label,
     border: const OutlineInputBorder(),
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: 12,
-      vertical: 14,
-    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
   );
 }
-

@@ -1,4 +1,3 @@
-
 class AppException implements Exception {
   final String message;
 
@@ -15,6 +14,8 @@ class Item {
   final String itemType;
   final String unit;
   final double currentQuantity;
+  final double reservedQuantity;
+  final int productionLeadDays;
   final double unitCost;
 
   // ข้อมูลสำหรับระบบ Safety Stock
@@ -31,6 +32,8 @@ class Item {
     required this.itemType,
     required this.unit,
     this.currentQuantity = 0,
+    this.reservedQuantity = 0,
+    this.productionLeadDays = 1,
     this.unitCost = 0,
     this.minQuantity = 0,
     this.safetyStock = 0,
@@ -40,6 +43,7 @@ class Item {
   });
 
   bool get isRaw => itemType == 'raw';
+  double get availableQuantity => currentQuantity - reservedQuantity;
 
   factory Item.fromMap(Map<String, Object?> map) {
     return Item(
@@ -48,19 +52,15 @@ class Item {
       name: map['name'] as String,
       itemType: map['item_type'] as String,
       unit: map['unit'] as String,
-      currentQuantity:
-          (map['current_quantity'] as num?)?.toDouble() ?? 0,
+      currentQuantity: (map['current_quantity'] as num?)?.toDouble() ?? 0,
+      reservedQuantity: (map['reserved_quantity'] as num?)?.toDouble() ?? 0,
+      productionLeadDays: (map['production_lead_days'] as num?)?.toInt() ?? 1,
       unitCost: (map['unit_cost'] as num?)?.toDouble() ?? 0,
-      minQuantity:
-          (map['min_quantity'] as num?)?.toDouble() ?? 0,
-      safetyStock:
-          (map['safety_stock'] as num?)?.toDouble() ?? 0,
-      leadTimeDays:
-          (map['lead_time_days'] as num?)?.toInt() ?? 3,
-      targetDays:
-          (map['target_days'] as num?)?.toInt() ?? 14,
-      serviceLevelZ:
-          (map['service_level_z'] as num?)?.toDouble() ?? 1.65,
+      minQuantity: (map['min_quantity'] as num?)?.toDouble() ?? 0,
+      safetyStock: (map['safety_stock'] as num?)?.toDouble() ?? 0,
+      leadTimeDays: (map['lead_time_days'] as num?)?.toInt() ?? 3,
+      targetDays: (map['target_days'] as num?)?.toInt() ?? 14,
+      serviceLevelZ: (map['service_level_z'] as num?)?.toDouble() ?? 1.65,
     );
   }
 }
@@ -119,8 +119,7 @@ class StockTx {
     return StockTx(
       id: map['id'] as int,
       itemCode: map['item_code'] as String,
-      itemName:
-          (map['item_name'] as String?) ?? map['item_code'] as String,
+      itemName: (map['item_name'] as String?) ?? map['item_code'] as String,
       txType: map['tx_type'] as String,
       quantity: (map['quantity'] as num).toDouble(),
       balanceAfter: (map['balance_after'] as num).toDouble(),
@@ -147,11 +146,7 @@ const Map<String, String> kHistoryFilters = {
   'adjust': 'ปรับยอด',
 };
 
-enum StockRiskLevel {
-  normal,
-  warning,
-  critical,
-}
+enum StockRiskLevel { normal, warning, critical }
 
 class StockRisk {
   final Item item;

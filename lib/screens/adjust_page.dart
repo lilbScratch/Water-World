@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'stock_action_form.dart';
 

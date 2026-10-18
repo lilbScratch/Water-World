@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -14,8 +13,7 @@ class PurchaseOrderHistoryPage extends StatefulWidget {
       _PurchaseOrderHistoryPageState();
 }
 
-class _PurchaseOrderHistoryPageState
-    extends State<PurchaseOrderHistoryPage> {
+class _PurchaseOrderHistoryPageState extends State<PurchaseOrderHistoryPage> {
   late Future<List<Map<String, Object?>>> _ordersFuture;
 
   @override
@@ -25,8 +23,7 @@ class _PurchaseOrderHistoryPageState
   }
 
   void _loadOrders() {
-    _ordersFuture =
-        context.read<InventoryProvider>().purchaseOrders();
+    _ordersFuture = context.read<InventoryProvider>().purchaseOrders();
   }
 
   Future<void> _refresh() async {
@@ -78,9 +75,7 @@ class _PurchaseOrderHistoryPageState
     final total = items.fold<double>(
       0,
       (sum, item) =>
-          sum +
-          _number(item['quantity']) *
-              _number(item['unit_cost']),
+          sum + _number(item['quantity']) * _number(item['unit_cost']),
     );
 
     showDialog<void>(
@@ -116,14 +111,10 @@ class _PurchaseOrderHistoryPageState
                         children: [
                           Text(
                             name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text('รหัสสินค้า: $code'),
-                          Text(
-                            'จำนวน: ${quantity.toStringAsFixed(2)} $unit',
-                          ),
+                          Text('จำนวน: ${quantity.toStringAsFixed(2)} $unit'),
                           Text('ราคาต่อหน่วย: ${_money(unitCost)} บาท'),
                           Text('รวม: ${_money(subtotal)} บาท'),
                         ],
@@ -181,9 +172,7 @@ class _PurchaseOrderHistoryPageState
         future: _ordersFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -246,8 +235,7 @@ class _PurchaseOrderHistoryPageState
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               itemCount: orders.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: 10),
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final order = orders[index];
                 final id = order['id']?.toString() ?? '-';
@@ -258,8 +246,7 @@ class _PurchaseOrderHistoryPageState
                   0,
                   (sum, item) =>
                       sum +
-                      _number(item['quantity']) *
-                          _number(item['unit_cost']),
+                      _number(item['quantity']) * _number(item['unit_cost']),
                 );
 
                 return Card(
@@ -271,9 +258,7 @@ class _PurchaseOrderHistoryPageState
                     ),
                     title: Text(
                       'ใบสั่งซื้อ #$id',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 6),

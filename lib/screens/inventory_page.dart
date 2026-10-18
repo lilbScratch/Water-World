@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -34,9 +33,7 @@ class InventoryPage extends StatelessWidget {
             : Column(
                 children: [
                   _quickActions(context),
-                  if (p.stockRisks.any(
-                    (r) => r.level != StockRiskLevel.normal,
-                  ))
+                  if (p.stockRisks.any((r) => r.level != StockRiskLevel.normal))
                     _alertSummary(context, p.stockRisks),
                   Expanded(
                     child: TabBarView(
@@ -82,7 +79,9 @@ class InventoryPage extends StatelessWidget {
                     'แจ้งเตือนสต๊อกวัตถุดิบ',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text('วิกฤต $critical รายการ • ใกล้ถึงจุดสั่งซื้อ $warning รายการ'),
+                  Text(
+                    'วิกฤต $critical รายการ • ใกล้ถึงจุดสั่งซื้อ $warning รายการ',
+                  ),
                 ],
               ),
             ),
@@ -94,33 +93,31 @@ class InventoryPage extends StatelessWidget {
 
   Widget _quickActions(BuildContext context) {
     Widget b(String label, IconData icon, Widget page) => Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(6, 12, 6, 6),
-            child: FilledButton.tonal(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => page),
-              ),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                minimumSize: Size.zero,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 20),
-                  const SizedBox(height: 4),
-                  Text(
-                    label,
-                    style: const TextStyle(fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(6, 12, 6, 6),
+        child: FilledButton.tonal(
+          onPressed: () =>
+              Navigator.push(context, MaterialPageRoute(builder: (_) => page)),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            minimumSize: Size.zero,
           ),
-        );
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
     return Row(
       children: [
@@ -152,24 +149,22 @@ class InventoryPage extends StatelessWidget {
         }
 
         final scheme = Theme.of(context).colorScheme;
-        final isCritical =
-            risk?.level == StockRiskLevel.critical;
-        final isWarning =
-            risk?.level == StockRiskLevel.warning;
+        final isCritical = risk?.level == StockRiskLevel.critical;
+        final isWarning = risk?.level == StockRiskLevel.warning;
 
         final Color statusColor = isCritical
             ? scheme.error
             : isWarning
-                ? Colors.orange.shade800
-                : scheme.primary;
+            ? Colors.orange.shade800
+            : scheme.primary;
 
         final String statusText = risk == null
             ? 'ยังไม่มีข้อมูลเกณฑ์เตือน'
             : isCritical
-                ? 'วิกฤต: ต่ำกว่า Safety Stock'
-                : isWarning
-                    ? 'ใกล้ถึงจุดสั่งซื้อ'
-                    : 'ปกติ';
+            ? 'วิกฤต: ต่ำกว่า Safety Stock'
+            : isWarning
+            ? 'ใกล้ถึงจุดสั่งซื้อ'
+            : 'ปกติ';
 
         return Card(
           child: ListTile(
@@ -199,11 +194,8 @@ class InventoryPage extends StatelessWidget {
                       '${qtyFmt.format(risk.suggestedOrderQuantity)} ${item.unit}',
                       style: TextStyle(color: scheme.error),
                     ),
-                ] else if (item.safetyStock <= 0 &&
-                    item.minQuantity <= 0) ...[
-                  const Text(
-                    'กรุณากำหนด Safety Stock หรือจุดสั่งซื้อ',
-                  ),
+                ] else if (item.safetyStock <= 0 && item.minQuantity <= 0) ...[
+                  const Text('กรุณากำหนด Safety Stock หรือจุดสั่งซื้อ'),
                 ],
               ],
             ),

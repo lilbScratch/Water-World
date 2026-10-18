@@ -1,26 +1,16 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models.dart';
 import '../providers/inventory_provider.dart';
 
-enum StockAction {
-  receive,
-  dispatch,
-  adjust,
-  produce,
-}
+enum StockAction { receive, dispatch, adjust, produce }
 
 class StockActionForm extends StatefulWidget {
   final String title;
   final StockAction action;
 
-  const StockActionForm({
-    super.key,
-    required this.title,
-    required this.action,
-  });
+  const StockActionForm({super.key, required this.title, required this.action});
 
   @override
   State<StockActionForm> createState() => _StockActionFormState();
@@ -48,11 +38,10 @@ class _StockActionFormState extends State<StockActionForm> {
     final choices = widget.action == StockAction.produce
         ? provider.finished
         : widget.action == StockAction.dispatch
-            ? [...provider.raw, ...provider.finished]
-            : provider.raw;
+        ? [...provider.raw, ...provider.finished]
+        : provider.raw;
 
-    if (code == null ||
-        !choices.any((item) => item.code == code)) {
+    if (code == null || !choices.any((item) => item.code == code)) {
       code = choices.isEmpty ? null : choices.first.code;
     }
 
@@ -99,8 +88,7 @@ class _StockActionFormState extends State<StockActionForm> {
             ),
           TextField(
             controller: quantityController,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: widget.action == StockAction.adjust
                   ? 'ยอดคงเหลือใหม่'
@@ -118,9 +106,7 @@ class _StockActionFormState extends State<StockActionForm> {
           ),
           const SizedBox(height: 20),
           FilledButton(
-            onPressed: saving || code == null
-                ? null
-                : () => _submit(context),
+            onPressed: saving || code == null ? null : () => _submit(context),
             child: Text(saving ? 'กำลังบันทึก...' : 'บันทึก'),
           ),
         ],
@@ -129,17 +115,14 @@ class _StockActionFormState extends State<StockActionForm> {
   }
 
   Future<void> _submit(BuildContext context) async {
-    final quantity =
-        double.tryParse(quantityController.text.trim());
+    final quantity = double.tryParse(quantityController.text.trim());
 
     if (quantity == null ||
         quantity < 0 ||
         (widget.action != StockAction.adjust && quantity == 0)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณากรอกจำนวนให้ถูกต้อง'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนให้ถูกต้อง')));
       return;
     }
 
@@ -150,51 +133,35 @@ class _StockActionFormState extends State<StockActionForm> {
 
       switch (widget.action) {
         case StockAction.receive:
-          await provider.receive(
-            code!,
-            quantity,
-            note: noteController.text,
-          );
+          await provider.receive(code!, quantity, note: noteController.text);
           break;
 
         case StockAction.dispatch:
-          await provider.dispatch(
-            code!,
-            quantity,
-            note: noteController.text,
-          );
+          await provider.dispatch(code!, quantity, note: noteController.text);
           break;
 
         case StockAction.adjust:
-          await provider.adjust(
-            code!,
-            quantity,
-            note: noteController.text,
-          );
+          await provider.adjust(code!, quantity, note: noteController.text);
           break;
 
         case StockAction.produce:
-          await provider.produce(
-            code!,
-            quantity,
-            note: noteController.text,
-          );
+          await provider.produce(code!, quantity, note: noteController.text);
           break;
       }
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('บันทึกข้อมูลแล้ว')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('บันทึกข้อมูลแล้ว')));
 
       Navigator.pop(context);
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('$error')));
     } finally {
       if (mounted) {
         setState(() => saving = false);
