@@ -165,14 +165,10 @@ class _QuickStockChangeSheetState extends State<QuickStockChangeSheet> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('บันทึกยอดสต็อกแล้ว')),
-      );
+      messenger.showSnackBar(appSnackBar(const Text('บันทึกยอดสต็อกแล้ว')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$error')));
+      ScaffoldMessenger.of(context).showSnackBar(appSnackBar(Text('$error')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

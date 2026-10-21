@@ -5,6 +5,7 @@ import '../data/stock_repository.dart';
 import '../models.dart';
 import '../order_models.dart';
 import '../providers/inventory_provider.dart';
+import '../shared/widgets.dart';
 
 class RecipeSetupPage extends StatelessWidget {
   const RecipeSetupPage({super.key});
@@ -24,11 +25,10 @@ class RecipeSetupPage extends StatelessWidget {
         productionLeadDays: result['days'] as int,
       );
       await inventory.refresh();
+      if (context.mounted) showAppMessage(context, 'บันทึกสูตรการผลิตแล้ว');
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context).showSnackBar(appSnackBar(Text('$error')));
       }
     }
   }
@@ -223,11 +223,10 @@ class _PurchaseReceiptsPageState extends State<PurchaseReceiptsPage> {
       );
       await inventory.refresh();
       if (mounted) setState(_load);
+      if (mounted) showAppMessage(context, 'บันทึกใบรับสินค้าแล้ว');
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context).showSnackBar(appSnackBar(Text('$error')));
       }
     }
   }

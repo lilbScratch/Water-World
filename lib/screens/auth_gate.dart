@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../shared/widgets.dart';
 import 'main_shell.dart';
 
 class AuthGate extends StatelessWidget {
@@ -163,11 +164,7 @@ class _SignInPageState extends State<SignInPage> {
       context,
     ).push<bool>(MaterialPageRoute(builder: (_) => const RegisterPage()));
     if (registered == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('สมัครสมาชิกสำเร็จ สามารถเข้าสู่ระบบได้แล้ว'),
-        ),
-      );
+      showAppMessage(context, 'สมัครสมาชิกสำเร็จ สามารถเข้าสู่ระบบได้แล้ว');
     }
   }
 
@@ -349,13 +346,15 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         role: result['role']!,
         pin: result['pin']!,
       );
-      if (mounted) setState(_load);
+      if (mounted) {
+        setState(_load);
+        showAppMessage(context, 'เพิ่มบัญชีผู้ใช้แล้ว');
+      }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString().replaceFirst('Exception: ', '')),
-          ),
+        showAppMessage(
+          context,
+          error.toString().replaceFirst('Exception: ', ''),
         );
       }
     }
@@ -373,13 +372,15 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     if (updatedRole == null) return;
     try {
       await auth.setUserRole((user['id'] as num).toInt(), updatedRole);
-      if (mounted) setState(_load);
+      if (mounted) {
+        setState(_load);
+        showAppMessage(context, 'เปลี่ยนสิทธิ์ผู้ใช้แล้ว');
+      }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString().replaceFirst('Exception: ', '')),
-          ),
+        showAppMessage(
+          context,
+          error.toString().replaceFirst('Exception: ', ''),
         );
       }
     }
@@ -417,6 +418,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     icon: const Icon(Icons.edit_outlined),
                   ),
                   onChanged: (active) async {
+                    final messenger = ScaffoldMessenger.of(this.context);
                     try {
                       await context.read<AuthProvider>().setUserActive(
                         (user['id'] as num).toInt(),
@@ -424,15 +426,31 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                       );
                       if (!mounted) return;
                       setState(_load);
-                    } catch (error) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              error.toString().replaceFirst('Exception: ', ''),
+                      messenger
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          appSnackBar(
+                            Text(
+                              active
+                                  ? 'เปิดใช้งานบัญชีแล้ว'
+                                  : 'ปิดใช้งานบัญชีแล้ว',
                             ),
                           ),
                         );
+                    } catch (error) {
+                      if (mounted) {
+                        messenger
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            appSnackBar(
+                              Text(
+                                error.toString().replaceFirst(
+                                  'Exception: ',
+                                  '',
+                                ),
+                              ),
+                            ),
+                          );
                       }
                     }
                   },

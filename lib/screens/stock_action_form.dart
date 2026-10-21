@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models.dart';
 import '../providers/inventory_provider.dart';
+import '../shared/widgets.dart';
 
 enum StockAction { receive, dispatch, adjust, produce }
 
@@ -123,7 +124,7 @@ class _StockActionFormState extends State<StockActionForm> {
         (widget.action != StockAction.adjust && quantity == 0)) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนให้ถูกต้อง')));
+      ).showSnackBar(appSnackBar(const Text('กรุณากรอกจำนวนให้ถูกต้อง')));
       return;
     }
 
@@ -154,15 +155,13 @@ class _StockActionFormState extends State<StockActionForm> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('บันทึกข้อมูลแล้ว')));
+      ).showSnackBar(appSnackBar(const Text('บันทึกข้อมูลแล้ว')));
 
       Navigator.pop(context);
     } catch (error) {
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$error')));
+      ScaffoldMessenger.of(context).showSnackBar(appSnackBar(Text('$error')));
     } finally {
       if (mounted) {
         setState(() => saving = false);

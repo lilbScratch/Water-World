@@ -7,6 +7,7 @@ import '../models.dart';
 import '../order_models.dart';
 import '../providers/auth_provider.dart';
 import '../providers/inventory_provider.dart';
+import '../shared/widgets.dart';
 
 part 'b2b_order_dialog.dart';
 
@@ -35,17 +36,22 @@ class _B2BPageState extends State<B2BPage> {
     await _orders;
   }
 
-  Future<void> _run(Future<void> Function() action) async {
+  Future<void> _run(
+    Future<bool> Function() action, {
+    required String successMessage,
+  }) async {
     final inventory = context.read<InventoryProvider>();
     try {
-      await action();
+      final changed = await action();
+      if (!changed) return;
       await inventory.refresh();
-      if (mounted) await _refresh();
+      if (mounted) {
+        await _refresh();
+        if (mounted) showAppMessage(context, successMessage);
+      }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$error')));
+        showAppMessage(context, '$error');
       }
     }
   }
@@ -63,14 +69,15 @@ class _B2BPageState extends State<B2BPage> {
         phone: result[2],
         address: result[3],
       );
-    });
+      return true;
+    }, successMessage: 'เพิ่มข้อมูลลูกค้าแล้ว');
   }
 
   Future<void> _newOrder() async {
     final inventory = context.read<InventoryProvider>();
     await _run(() async {
       final customers = await _repo.b2bCustomers();
-      if (!mounted) return;
+      if (!mounted) return false;
       if (customers.isEmpty || inventory.finished.isEmpty) {
         throw AppException('กรุณาเพิ่มลูกค้าและสินค้าสำเร็จรูปก่อน');
       }
@@ -79,14 +86,15 @@ class _B2BPageState extends State<B2BPage> {
         builder: (_) =>
             _B2BOrderDialog(customers, inventory.finished, inventory.repo),
       );
-      if (values == null) return;
+      if (values == null) return false;
       await inventory.repo.createB2BOrder(
         customerId: values['customer_id'] as int,
         items: (values['items'] as List).cast<Map<String, Object?>>(),
         deliveryDate: values['delivery_date'] as DateTime,
         notes: values['notes'] as String,
       );
-    });
+      return true;
+    }, successMessage: 'สร้างคำสั่งซื้อแล้ว');
   }
 
   Future<void> _action(String action, int id) async {
@@ -113,11 +121,20 @@ class _B2BPageState extends State<B2BPage> {
       if (confirmed != true || !mounted) return;
     }
     await _run(
-      () => switch (action) {
-        'confirm' => _repo.confirmB2BOrder(id),
-        'produce' => _repo.produceB2BOrder(id),
-        'fulfill' => _repo.fulfillB2BOrder(id),
-        _ => _repo.cancelB2BOrder(id),
+      () async {
+        await switch (action) {
+          'confirm' => _repo.confirmB2BOrder(id),
+          'produce' => _repo.produceB2BOrder(id),
+          'fulfill' => _repo.fulfillB2BOrder(id),
+          _ => _repo.cancelB2BOrder(id),
+        };
+        return true;
+      },
+      successMessage: switch (action) {
+        'confirm' => 'ยืนยันคำสั่งซื้อแล้ว',
+        'produce' => 'บันทึกการผลิตแล้ว',
+        'fulfill' => 'บันทึกการจัดส่งแล้ว',
+        _ => 'ยกเลิกคำสั่งซื้อแล้ว',
       },
     );
   }

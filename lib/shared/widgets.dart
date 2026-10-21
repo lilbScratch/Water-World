@@ -25,22 +25,25 @@ Future<bool> trySave(
   final errColor = Theme.of(context).colorScheme.error;
   try {
     final msg = await action();
-    messenger.showSnackBar(SnackBar(content: Text(msg)));
+    messenger.showSnackBar(appSnackBar(Text(msg)));
     return true;
   } catch (e) {
-    messenger.showSnackBar(
-      SnackBar(content: Text('$e'), backgroundColor: errColor),
-    );
+    messenger.showSnackBar(appSnackBar(Text('$e'), backgroundColor: errColor));
     return false;
   }
 }
 
+SnackBar appSnackBar(Widget content, {Color? backgroundColor}) => SnackBar(
+  content: content,
+  backgroundColor: backgroundColor,
+  behavior: SnackBarBehavior.floating,
+  duration: const Duration(seconds: 3),
+);
+
 void showAppMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    ..showSnackBar(appSnackBar(Text(message)));
 }
 
 InputDecoration inputDecoration(String label) {

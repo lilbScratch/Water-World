@@ -80,6 +80,9 @@ class WaterWorldApp extends StatelessWidget {
             borderSide: const BorderSide(color: Color(0xFFC8E4FA)),
           ),
         ),
+        snackBarTheme: const SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+        ),
         useMaterial3: true,
       ),
       home: const AuthGate(),

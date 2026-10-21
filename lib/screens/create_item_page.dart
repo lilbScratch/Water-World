@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/inventory_provider.dart';
+import '../shared/widgets.dart';
 
 class CreateItemPage extends StatefulWidget {
   const CreateItemPage({super.key});
@@ -120,9 +121,7 @@ class _CreateItemPageState extends State<CreateItemPage> {
         unitCost == null ||
         !unitCost.isFinite ||
         unitCost < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ตรวจสอบยอดตั้งต้นและต้นทุนอีกครั้ง')),
-      );
+      showAppMessage(context, 'ตรวจสอบยอดตั้งต้นและต้นทุนอีกครั้ง');
       return;
     }
     setState(() => _saving = true);
@@ -138,14 +137,10 @@ class _CreateItemPageState extends State<CreateItemPage> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('สร้างรายการสินค้าแล้ว')),
-      );
+      messenger.showSnackBar(appSnackBar(const Text('สร้างรายการสินค้าแล้ว')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$error')));
+      ScaffoldMessenger.of(context).showSnackBar(appSnackBar(Text('$error')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

@@ -45,9 +45,7 @@ class _LineInboxPageState extends State<LineInboxPage> {
       });
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เชื่อมต่อ LINE ไม่สำเร็จ: $error')),
-      );
+      showAppMessage(context, 'เชื่อมต่อ LINE ไม่สำเร็จ: $error');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -70,14 +68,12 @@ class _LineInboxPageState extends State<LineInboxPage> {
       await client.resolve(command.id, apply ? 'applied' : 'rejected');
       if (!mounted) return;
       setState(() => _pending.removeWhere((entry) => entry.id == command.id));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(apply ? 'บันทึกสต็อกแล้ว' : 'ปฏิเสธคำขอแล้ว')),
-      );
+      showAppMessage(context, apply ? 'บันทึกสต็อกแล้ว' : 'ปฏิเสธคำขอแล้ว');
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('ดำเนินการไม่สำเร็จ: $error')));
+      ).showSnackBar(appSnackBar(Text('ดำเนินการไม่สำเร็จ: $error')));
     } finally {
       if (mounted) setState(() => _busyId = null);
     }
