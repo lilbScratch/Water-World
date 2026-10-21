@@ -1,3 +1,4 @@
+// Reads time-series summaries for the management dashboard.
 part of 'stock_repository.dart';
 
 extension AnalyticsOperations on StockRepository {
@@ -71,6 +72,46 @@ extension AnalyticsOperations on StockRepository {
       WHERE date(t.created_at) BETWEEN ? AND ? GROUP BY date(t.created_at) ORDER BY day''',
       [cutoff, today],
     );
+    final salesByDay = await db.rawQuery(
+      '''
+      SELECT date(o.fulfilled_at) AS day,
+        SUM(l.quantity * l.unit_price) AS amount
+      FROM b2b_orders o JOIN b2b_order_lines l ON l.order_id = o.id
+      WHERE o.status = 'fulfilled' AND date(o.fulfilled_at) BETWEEN ? AND ?
+      GROUP BY date(o.fulfilled_at)
+    ''',
+      [cutoff, today],
+    );
+    final purchasesByDay = await db.rawQuery(
+      '''
+      SELECT purchased_at AS day, SUM(quantity * unit_price) AS amount
+      FROM purchase_receipts WHERE purchased_at BETWEEN ? AND ?
+      GROUP BY purchased_at
+    ''',
+      [cutoff, today],
+    );
+    final salesAmounts = {
+      for (final row in salesByDay)
+        row['day'] as String: (row['amount'] as num).toDouble(),
+    };
+    final purchaseAmounts = {
+      for (final row in purchasesByDay)
+        row['day'] as String: (row['amount'] as num).toDouble(),
+    };
+    final cashFlow = List.generate(days, (index) {
+      final day = dateOnly(
+        DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(Duration(days: days - index - 1)),
+      );
+      return <String, Object?>{
+        'day': day,
+        'sales': salesAmounts[day] ?? 0.0,
+        'purchases': purchaseAmounts[day] ?? 0.0,
+      };
+    });
     return [
       {
         'summary': {...inventory, ...orders, ...daily, ...sales},
@@ -78,6 +119,7 @@ extension AnalyticsOperations on StockRepository {
         'purchase_prices': prices,
         'top_sellers': sellers,
         'material_usage': usage,
+        'cash_flow': cashFlow,
       },
       ...trends,
     ];

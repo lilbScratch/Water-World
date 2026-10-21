@@ -1,185 +1,101 @@
-# แอปจัดการสต็อกร้านผลิตน้ำดื่ม (Water World)
+# Water World
 
-แอปภาษาไทยสำหรับจัดการคลังวัตถุดิบ การผลิต การวางแผนจัดซื้อ และคำสั่งซื้อขายส่งของกิจการน้ำดื่ม พัฒนาด้วย **Flutter / Dart**, ใช้ **Provider** จัดการสถานะ และ **SQLite (`sqflite`)** จัดเก็บข้อมูลบนอุปกรณ์
+Flutter app for local stock, production, purchasing, B2B orders, and reporting for a bottled-water business. It uses SQLite on each device; data does not sync between phones.
 
-รุ่นนี้เพิ่ม **R3–R4–R5** ต่อจาก R1 และ R2 พร้อมหน้าภาพรวมผู้จัดการ การจัดการบัญชี และเอกสารนำเสนอภาษาไทย ข้อมูลอัปเดตภายในแอปหลังบันทึกรายการ โดยยังไม่ซิงก์ระหว่างอุปกรณ์
+## Requirements
 
-## ภาพรวมการทำงาน
+- Flutter SDK **3.44.4** was used for the latest local checks; `pubspec.yaml` requires Dart `^3.12.2` (minimum 3.12.2, not an exact pin)
+- Git
+- Android Studio with Android SDK and platform tools, or VS Code with the Flutter and Dart extensions
+- Android emulator (Pixel 7 is fine) or a USB-debuggable Android phone
+- Windows, macOS, or Linux development machine
 
-สมัครสมาชิก / เข้าสู่ระบบ → รับวัตถุดิบ → ตรวจสต็อกและวางแผนจัดซื้อ → รับคำสั่งซื้อขายส่ง → ตรวจความพร้อมและสำรอง → บันทึกผลิต → ยืนยันจัดส่ง → ดูประวัติและข้อมูลสรุป
+No separate database server or manually installed Dart packages are needed. `flutter pub get` installs the Dart/Flutter packages listed in `pubspec.yaml`. Android Studio installs the Android build tools. The app uses the Android SQLite integration supplied through Flutter packages.
 
-## R1 — ระบบจัดการคลังสินค้าและการผลิต
+Optional: Python 3.9+ only if you want to run the separate LINE bridge. It has no third-party Python package dependencies; see [`Writeup/line_bridge/README.md`](../../Writeup/line_bridge/README.md).
 
-### ฟังก์ชันที่ทำแล้ว
+## Install and run on Android
 
-- **คลังสินค้า**: แสดงปริมาณสต็อกคงเหลือ แยกแท็บวัตถุดิบและสินค้าสำเร็จรูป
-- **รับเข้าวัตถุดิบ**: บันทึกจำนวนรับเข้าและหมายเหตุ พร้อมเพิ่มยอดคงเหลือ
-- **บันทึกการผลิต**: ตัดวัตถุดิบตามสูตรการผลิต (BOM) และเพิ่มสินค้าสำเร็จรูปโดยใช้ Database Transaction
-- **ตรวจสอบวัตถุดิบก่อนผลิต**: แสดงจำนวนที่ต้องใช้ จำนวนที่มีอยู่ และจำนวนที่ขาด พร้อมป้องกันการยืนยันการผลิตเมื่อวัตถุดิบไม่เพียงพอ
-- **ขายและส่งสินค้า**: ตัดสต็อกสินค้าสำเร็จรูปและบันทึกประวัติ ส่วนคำสั่งซื้อขายส่งที่ผูกกับลูกค้าอยู่ใน R3
-- **ปรับยอดสต็อก**: เพิ่มหรือลดจำนวน พร้อมระบุเหตุผล เช่น ตรวจนับสต็อกจริงหรือสินค้าเสียหาย
-- **ประวัติสต็อก**: บันทึกการเคลื่อนไหวของสินค้า พร้อมกรองประเภทธุรกรรม
-- **ป้องกันสต็อกติดลบ**: ตรวจสอบจำนวนก่อนทำรายการ และใช้ Rollback เมื่อการผลิตไม่สามารถดำเนินการได้ครบถ้วน
+1. Install Flutter and Android Studio. In Android Studio, install the Android SDK and accept its licenses.
+2. Check the toolchain:
 
-## R2 — ระบบแจ้งเตือนสต็อกและแนะนำการสั่งซื้อ
+   ```powershell
+   flutter doctor
+   ```
 
-### ฟังก์ชันที่ทำแล้ว
+   Resolve any Android toolchain issues reported by `flutter doctor`.
+3. Clone the project and enter its folder:
 
-- **Stock Alert**: แสดงสถานะความเสี่ยงของวัตถุดิบ แบ่งเป็นปกติ เตือนสต็อกต่ำ และวิกฤต
-- **คำนวณ Safety Stock**: คำนวณปริมาณสต็อกสำรองจากระดับการให้บริการ ความผันผวนของการใช้วัตถุดิบ และระยะเวลารอสินค้า
-- **คำนวณ Reorder Point**: คำนวณจุดสั่งซื้อจากอัตราการใช้เฉลี่ยต่อวัน ระยะเวลารอสินค้า และปริมาณสต็อกสำรอง
-- **วิเคราะห์การใช้วัตถุดิบ**: ใช้ข้อมูลย้อนหลัง 30 วันเพื่อคำนวณอัตราการใช้เฉลี่ยและส่วนเบี่ยงเบนมาตรฐาน
-- **แนะนำจำนวนที่ควรสั่งซื้อ**: คำนวณปริมาณสั่งซื้อที่แนะนำ เพื่อให้สต็อกกลับไปถึงระดับเป้าหมาย
-- **กำหนดนโยบายสต็อก**: ตั้งค่าระยะเวลารอสินค้า (Lead Time), จำนวนวันที่ต้องการสำรองสต็อก (Target Days), ระดับการให้บริการ (Service Level), Safety Stock และจุดสั่งซื้อขั้นต่ำได้
-- **สร้างรายการสั่งซื้อ**: เลือกวัตถุดิบและจำนวนที่ต้องการสั่งซื้อจากหน้าจอแจ้งเตือน แล้วบันทึกเป็นรายการสั่งซื้อแบบร่าง (Draft)
-- **ดูรายการสั่งซื้อที่บันทึกไว้**: แสดงรายการสั่งซื้อย้อนหลังและเปิดดูรายละเอียดของแต่ละรายการ เช่น วันที่สร้าง วัตถุดิบ จำนวน ต้นทุนต่อหน่วย และยอดรวม
+   ```powershell
+   git clone --branch feature/waterworld-work2 https://github.com/lilbScratch/Water-World.git
+   cd Water-World
+   ```
 
-### หลักการคำนวณ
+   This branch contains the current Work2 app version. To run an older published baseline instead, clone `master` explicitly.
 
-**1. Safety Stock — ปริมาณสต็อกสำรอง**
+   If you received a ZIP instead, extract it and open the folder containing `pubspec.yaml`.
+4. Fetch declared packages and check available devices:
 
-`Safety Stock = Z × SD × √Lead Time`
+   ```powershell
+   flutter pub get
+   flutter devices
+   ```
+5. Start an Android emulator in Android Studio Device Manager, or connect a phone with USB debugging enabled. Then run:
 
-- `Z` คือค่าที่สัมพันธ์กับระดับการให้บริการที่ต้องการ
-- `SD` คือส่วนเบี่ยงเบนมาตรฐานของอัตราการใช้วัตถุดิบต่อวัน
-- `Lead Time` คือระยะเวลารอสินค้า
+   ```powershell
+   flutter run
+   ```
 
-**2. Reorder Point — จุดสั่งซื้อ**
+   To select a specific device, use `flutter run -d <device-id>` with an ID shown by `flutter devices`. In VS Code, open this project folder, select the device in the status bar, then press **F5**.
 
-`Reorder Point = Average Daily Usage × Lead Time + Safety Stock`
+## Demo sign-in
 
-**3. Suggested Order Quantity — จำนวนที่แนะนำให้สั่งซื้อ**
+On a fresh local database, the demo manager account is `admin` with PIN `123456`. This is a presentation credential shipped in the source; do not reuse it for real business data. User accounts and inventory are stored in the local SQLite database on the device.
 
-`Suggested Quantity = max(0, Target Stock − Current Stock)`
+## Main workflows
 
-ระดับสต็อกเป้าหมายคำนวณจากอัตราการใช้เฉลี่ยต่อวัน จำนวนวันที่ต้องการสำรอง และ Safety Stock
+1. Review inventory and create missing item records.
+2. Record received materials or correct a counted balance.
+3. Configure stock planning values and review low-stock suggestions.
+4. Add a B2B customer and order. The app checks and reserves available materials before accepting production work.
+5. Record production and dispatch; inspect transaction history and the dashboard.
+6. For LINE stock requests, optionally run the separate bridge. Each request must be reviewed and confirmed in the app before it changes local stock. See [`Writeup/line_bridge/README.md`](../../Writeup/line_bridge/README.md).
 
-ระบบสามารถใช้ค่าที่ผู้ใช้กำหนดเองสำหรับ Safety Stock และจุดสั่งซื้อขั้นต่ำได้ หากไม่ได้กำหนด ระบบจะคำนวณจากข้อมูลการใช้วัตถุดิบ
+## Dependencies
 
-## R3 — ลูกค้าและคำสั่งซื้อขายส่ง
+Direct application packages are declared in `pubspec.yaml` and locked in `pubspec.lock`:
 
-- **ข้อมูลลูกค้า**: เพิ่มชื่อกิจการ ผู้ติดต่อ เบอร์โทรศัพท์ และที่อยู่ พร้อมค้นหาลูกค้าจากชื่อหรือเบอร์โทรศัพท์
-- **สร้างคำสั่งซื้อ**: ระบุสินค้า จำนวน ราคาขายต่อหน่วย กำหนดส่ง และหมายเหตุ
-- **ตรวจสอบความพร้อม**: ใช้ยอดสินค้าคงเหลือหักยอดสำรอง คำนวณจำนวนที่ต้องผลิตเพิ่มตามสูตร และรวมความต้องการวัตถุดิบทุกสินค้า
-- **ประเมินวันที่พร้อมส่ง**: ใช้ระยะเวลาจัดซื้อวัตถุดิบที่ขาดนานที่สุดบวกกับระยะเวลาผลิตที่นานที่สุด เป็นค่าประเมิน ไม่รวมตารางกำลังผลิต การขนส่ง หรือวันหยุด
-- **สำรองสินค้าและวัตถุดิบ**: ยืนยันได้เมื่อมีสูตร วัตถุดิบ และกำหนดส่งที่ผ่านเงื่อนไข รายการที่ยังไม่พร้อมเก็บเป็นฉบับร่างได้
-- **บันทึกผลิตตามคำสั่งซื้อ**: ตัดวัตถุดิบที่สำรองไว้ เพิ่มสินค้าสำเร็จรูป และสำรองผลผลิตให้คำสั่งซื้อเดิม
-- **จัดส่งและยกเลิก**: ยืนยันจัดส่งเพื่อตัดยอดสินค้า หรือยกเลิกก่อนจัดส่งเพื่อคืนยอดสำรอง
+- Flutter SDK: Material UI and Thai localization
+- `provider`: app state and dependency access
+- `sqflite`: local SQLite database
+- `path`: database path handling
+- `intl`: date and number formatting
+- `cryptography`: password/PIN hashing
+- `cupertino_icons`: icon set
+- Development: `flutter_test`, `flutter_lints`, and `sqflite_common_ffi` for tests
 
-สถานะ: **ฉบับร่าง → รอผลิต / พร้อมจัดส่ง → จัดส่งแล้ว** หรือ **ยกเลิกแล้ว**
+Do not install these one by one; run `flutter pub get` from the folder containing `pubspec.yaml`.
 
-## R4 — ภาพรวมสำหรับผู้จัดการ
+## Test and build
 
-- การ์ดสรุปคำสั่งซื้อใหม่ ยอดผลิต คำสั่งซื้อถึงกำหนด/ค้างส่ง และยอดขายที่จัดส่งแล้ววันนี้
-- มูลค่าวัตถุดิบคงเหลือ สินค้าสำเร็จรูป และสินค้าพร้อมจัดส่งแยกตามขนาด
-- รายการวัตถุดิบวิกฤตหรือใกล้ถึงจุดสั่งซื้อ เชื่อมกับการประเมินใน R2
-- ยอดขาย สินค้าขายดี การผลิต การจัดส่ง และการใช้วัตถุดิบ
-- เลือกช่วง **วันนี้ / 7 วัน / 30 วัน** พร้อมรีเฟรชและอัปเดตเมื่อข้อมูลสต็อกเปลี่ยน
-- ปุ่ม **จัดการบัญชีผู้ใช้** ด้านบน เปิดรายชื่อจากฐานข้อมูลเพื่อเปลี่ยนบทบาท
-
-### แหล่งข้อมูลราคาซื้อ
-
-กราฟประวัติราคาซื้อขวดใช้ **ใบรับสินค้าจากการซื้อที่ผู้ใช้บันทึกจริง** ในตาราง `purchase_receipts` ผู้ใช้ระบุจำนวน ราคาซื้อจริงต่อหน่วย วันที่ซื้อ ผู้จำหน่าย และเลขที่เอกสาร แต่ละจุดแทนการรับสินค้าหนึ่งครั้ง โดยติดตามขวด PET ขนาด 350, 600 และ 1,500 มล.
-
-- ไม่ดึงราคาจากอินเทอร์เน็ต ไม่สร้างราคาตัวอย่าง และไม่ใช้ต้นทุนปัจจุบันแทนประวัติย้อนหลัง
-- หากไม่มีใบรับสินค้า จะแสดงว่ายังไม่มีข้อมูล
-- การบันทึกใบรับสินค้าเพิ่มสต็อกด้วย **ห้ามรับสินค้าชุดเดียวกันซ้ำในหน้ารับเข้า**
-- ร่างใบสั่งซื้อ R2 เป็นแผนจัดซื้อ ยังไม่ใช่การรับสินค้าหรือข้อมูลราคาซื้อจริง
-- ยอดขายนับเมื่อยืนยันจัดส่ง โดยใช้ราคาขายที่บันทึกในคำสั่งซื้อ ไม่ใช่ยอดรับชำระเงิน
-
-## R5 — บัญชีผู้ใช้และบทบาท
-
-ขอบเขตล่าสุดคือ **สมัครสมาชิก เข้าสู่ระบบ ออกจากระบบ และกำหนดบทบาท** ไม่รวมการซิงก์ข้ามอุปกรณ์
-
-- สมัครด้วยชื่อที่แสดง ชื่อผู้ใช้ และรหัสผ่านอย่างน้อย 6 ตัวอักษร
-- บัญชีใหม่เริ่มต้นเป็น **ผู้ใช้งานทั่วไป** และเข้าสู่ระบบได้ทันที ไม่ต้องรออนุมัติ
-- มีปุ่ม **กลับไปหน้าเข้าสู่ระบบ** ในหน้าสมัครสมาชิก
-- ผู้จัดการดูรายชื่อบัญชี แก้ไขบทบาท เพิ่มบัญชี และเปิด/ระงับการใช้งานได้
-- รองรับ **ผู้จัดการ**, **ฝ่ายผลิต**, **ฝ่ายจัดซื้อ**, **ผู้ใช้งานทั่วไป** และชื่อบทบาทที่กำหนดเอง
-- รหัสผ่านจัดเก็บเป็นค่าแฮช PBKDF2 พร้อม salt ไม่เก็บเป็นข้อความตรง ๆ
-- บัญชี `admin` ต้องคงบทบาทผู้จัดการ และระบบป้องกันการระงับบัญชีที่กำลังใช้งานอยู่
-
-### สิทธิ์การใช้งานปัจจุบัน
-
-| ฟังก์ชัน | ผู้จัดการ | ทุกบัญชีอื่นที่เข้าสู่ระบบ |
-|---|---|---|
-| คลังสินค้า รับเข้า ผลิต ขาย/ส่ง และปรับยอด | ใช้ได้ | ใช้ได้ |
-| แจ้งเตือนและร่างใบสั่งซื้อ | ใช้ได้ | ใช้ได้ |
-| ลูกค้าและคำสั่งซื้อขายส่ง | ใช้ได้ | ใช้ได้ |
-| สูตรการผลิตและใบรับสินค้า | ใช้ได้ | ใช้ได้ |
-| ประวัติรายการ | ใช้ได้ | ใช้ได้ |
-| ภาพรวมสำหรับผู้จัดการ | ใช้ได้ | ใช้ไม่ได้ |
-| จัดการบัญชีและเปลี่ยนบทบาท | ใช้ได้ | ใช้ไม่ได้ |
-
-บทบาทใช้ระบุหน้าที่ แต่ไม่จำกัดฟังก์ชันงานทั่วไปหลังเข้าสู่ระบบ เฉพาะภาพรวมและการจัดการบัญชีเท่านั้นที่สงวนไว้สำหรับผู้จัดการ
-
-## ฐานข้อมูล
-
-ใช้ SQLite บนอุปกรณ์ ข้อมูลยังอยู่เมื่อปิดและเปิดแอปใหม่ รุ่นฐานข้อมูลปัจจุบันคือ **8** มีการอัปเกรดโครงสร้างเพื่อรักษาข้อมูลบัญชีและรายการเดิม
-
-| ตารางหลัก | หน้าที่ |
-|---|---|
-| `items` | วัตถุดิบ สินค้าสำเร็จรูป ยอดคงเหลือ ยอดสำรอง และนโยบายสต็อก |
-| `recipes` | ปริมาณวัตถุดิบต่อสินค้าสำเร็จรูปหนึ่งหน่วย |
-| `production_batches` | รายการผลิต |
-| `stock_transactions` | ประวัติรับเข้า ใช้ผลิต ผลิตสินค้า จ่ายออก และปรับยอด |
-| `purchase_orders` | ร่างใบสั่งซื้อวัตถุดิบจาก R2 |
-| `b2b_customers` | ข้อมูลลูกค้าขายส่ง |
-| `b2b_orders` / `b2b_order_lines` | คำสั่งซื้อ สถานะ กำหนดส่ง สินค้า จำนวน และราคาขาย |
-| `b2b_material_allocations` | วัตถุดิบที่สำรองไว้สำหรับการผลิตตามคำสั่งซื้อ |
-| `purchase_receipts` | ประวัติรับสินค้าจากการซื้อพร้อมราคาจริงและเอกสารอ้างอิง |
-| `local_users` | บัญชีผู้ใช้ บทบาท สถานะ และค่าแฮชรหัสผ่าน |
-
-โค้ดยังมีตารางคิวเดิม แต่ไม่ได้หมายความว่ามีระบบซิงก์ข้ามอุปกรณ์ที่ใช้งานสมบูรณ์
-
-## ข้อมูลเริ่มต้นและการเตรียมใช้งาน
-
-- มีรายการวัตถุดิบ เช่น ขวด PET ฝา และฟิล์ม รวมถึงสินค้าน้ำดื่มขนาด 350, 600 และ 1,500 มล.
-- ต้องกำหนด **สูตรการผลิต ปริมาณสต็อก ราคาซื้อ และระยะเวลาจัดซื้อ/ผลิต** ตามข้อมูลที่ตรวจสอบจริง ระบบไม่สร้างสูตรโรงงานหรือประวัติราคาซื้อสมมติ
-- ฐานข้อมูลใหม่สร้างบัญชีสาธิต `admin` / `123456` บทบาทผู้จัดการ บัญชีนี้เป็นข้อมูลสาธิตที่เผยแพร่พร้อมโค้ด ต้องปรับการตั้งค่าบัญชีก่อนใช้กับข้อมูลจริง
-
-## โครงสร้างไฟล์หลัก
-
-```text
-lib/
-├── data/
-│   ├── app_db.dart
-│   ├── stock_repository.dart
-│   ├── order_operations.dart
-│   ├── planning_data_operations.dart
-│   └── analytics_operations.dart
-├── providers/
-│   ├── inventory_provider.dart
-│   └── auth_provider.dart
-├── screens/
-│   ├── inventory_page.dart
-│   ├── stock_alert_page.dart
-│   ├── purchase_order_page.dart
-│   ├── purchase_order_history_page.dart
-│   ├── b2b_page.dart
-│   ├── b2b_order_dialog.dart
-│   ├── executive_dashboard_page.dart
-│   ├── planning_data_page.dart
-│   ├── auth_gate.dart
-│   └── main_shell.dart
-├── models.dart
-├── order_models.dart
-└── thai_labels.dart
-```
-
-## เริ่มใช้งานและตรวจสอบ
-
-ใช้ Flutter SDK ที่รองรับ Dart ตาม `pubspec.yaml` และอุปกรณ์ Android หรือ emulator
-
-```sh
-flutter pub get
-flutter run
-```
-
-```sh
-flutter test
+```powershell
 flutter analyze
+flutter test
 flutter build apk --debug
 ```
 
-ผลตรวจรุ่นโค้ดที่ส่ง: ชุดทดสอบผ่าน **20 รายการ**, สร้าง APK สำเร็จ และ analyzer มีข้อเสนอแนะระดับ info **17 รายการ** โดยไม่มี error หรือ warning ครอบคลุมการสำรอง/ผลิต/จัดส่ง การคืนยอดสำรอง ประวัติราคาซื้อ การอัปเกรดฐานข้อมูล สิทธิ์ผู้ใช้ รีเฟรชภาพรวม และการปิดหน้าต่างแก้บทบาท
+The debug APK is created at `build/app/outputs/flutter-apk/app-debug.apk`.
+
+## Project notes
+
+- App entry and dependency setup: `lib/main.dart`
+- Database schema and migrations: `lib/data/app_db.dart`
+- Stock repository and transactions: `lib/data/stock_repository.dart`
+- UI pages: `lib/screens/`
+- State providers: `lib/providers/`
+- Full file-by-file guide and workflows: kept in the course workspace at `Project/Writeup/docs/WORK2_CODE_GUIDE.md`.
+- LINE bridge setup and security notes: kept in the course workspace at `Project/Writeup/line_bridge/README.md`.
+
+## Data and security limits
+
+SQLite is local to the device. Back up a device’s app data before reinstalling; uninstalling can remove its local database. This prototype has no cross-device synchronization. Never commit LINE channel secrets, access tokens, or bridge tokens. Use environment variables on the bridge host and the runtime token prompt in the app. Companion course writeups and the optional bridge service are outside this app repository; the `Project/Writeup` folder is part of the supplied local workspace only.

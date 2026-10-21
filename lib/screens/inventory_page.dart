@@ -1,3 +1,4 @@
+// Shows stock balances and provides quick inventory actions.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -5,9 +6,11 @@ import '../models.dart';
 import '../providers/inventory_provider.dart';
 import '../shared/widgets.dart';
 import 'adjust_page.dart';
+import 'create_item_page.dart';
 import 'dispatch_page.dart';
 import 'production_page.dart';
 import 'receive_page.dart';
+import 'quick_stock_change_sheet.dart';
 
 class InventoryPage extends StatelessWidget {
   const InventoryPage({super.key});
@@ -21,6 +24,16 @@ class InventoryPage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('คลังสินค้า'),
+          actions: [
+            IconButton(
+              tooltip: 'เพิ่มรายการสินค้า',
+              icon: const Icon(Icons.add_box_outlined),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreateItemPage()),
+              ),
+            ),
+          ],
           bottom: const TabBar(
             tabs: [
               Tab(text: 'วัตถุดิบ'),
@@ -92,40 +105,66 @@ class InventoryPage extends StatelessWidget {
   }
 
   Widget _quickActions(BuildContext context) {
-    Widget b(String label, IconData icon, Widget page) => Expanded(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(6, 12, 6, 6),
-        child: FilledButton.tonal(
-          onPressed: () =>
-              Navigator.push(context, MaterialPageRoute(builder: (_) => page)),
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            minimumSize: Size.zero,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    Widget action(
+      String label,
+      IconData icon,
+      Widget page, {
+      bool primary = false,
+    }) {
+      void open() =>
+          Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+      return primary
+          ? FilledButton.icon(
+              onPressed: open,
+              icon: Icon(icon),
+              label: Text(label),
+            )
+          : FilledButton.tonalIcon(
+              onPressed: open,
+              icon: Icon(icon),
+              label: Text(label),
+            );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      child: Column(
+        children: [
+          Row(
             children: [
-              Icon(icon, size: 20),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: const TextStyle(fontSize: 11),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Expanded(
+                child: action(
+                  'รับเข้าสต็อก',
+                  Icons.add,
+                  const ReceivePage(),
+                  primary: true,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: action(
+                  'บันทึกผลิต',
+                  Icons.factory,
+                  const ProductionPage(),
+                  primary: true,
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: action('เบิกออก', Icons.remove, const DispatchPage()),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: action('นับยอดใหม่', Icons.tune, const AdjustPage()),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-
-    return Row(
-      children: [
-        b('รับเข้า', Icons.input, const ReceivePage()),
-        b('ผลิต', Icons.factory, const ProductionPage()),
-        b('ขาย/ส่ง', Icons.local_shipping, const DispatchPage()),
-        b('ปรับยอด', Icons.tune, const AdjustPage()),
-      ],
     );
   }
 
@@ -168,11 +207,18 @@ class InventoryPage extends StatelessWidget {
 
         return Card(
           child: ListTile(
+            onTap: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              builder: (_) => QuickStockChangeSheet(item: item),
+            ),
             title: Text(item.name),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('${item.code} • หน่วย: ${item.unit}'),
+                const Text('แตะเพื่อรับเข้าหรือเบิกออก'),
                 const SizedBox(height: 4),
                 Text(
                   statusText,

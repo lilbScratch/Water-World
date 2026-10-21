@@ -1,3 +1,4 @@
+// Edits planning inputs such as recipes and purchasing assumptions.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/stock_repository.dart';

@@ -77,6 +77,22 @@ void main() {
     },
   );
   test(
+    'restores the signed-in account after restarting the provider',
+    () async {
+      await auth.signIn('admin', '123456');
+      final restartedAuth = AuthProvider(appDb: db);
+      await restartedAuth.initialize();
+      expect(restartedAuth.currentUser?.username, 'admin');
+
+      await restartedAuth.signOut();
+      restartedAuth.dispose();
+      final signedOutAuth = AuthProvider(appDb: db);
+      await signedOutAuth.initialize();
+      expect(signedOutAuth.currentUser, isNull);
+      signedOutAuth.dispose();
+    },
+  );
+  test(
     'Manager designates operational or custom roles and can disable another account',
     () async {
       await auth.registerUser(
@@ -90,22 +106,22 @@ void main() {
       );
       final id = (staff['id'] as num).toInt();
       await auth.setUserRole(id, 'ฝ่ายผลิต');
-      auth.signOut();
+      await auth.signOut();
       await auth.signIn('staff', '654321');
       expect(auth.canManageInventory, isTrue);
       expect(auth.canManageOrders, isTrue);
-      auth.signOut();
+      await auth.signOut();
       await auth.signIn('admin', '123456');
       await auth.setUserRole(id, 'ฝ่ายจัดซื้อ');
-      auth.signOut();
+      await auth.signOut();
       await auth.signIn('staff', '654321');
       expect(auth.canManageOrders, isTrue);
       expect(auth.canManageInventory, isTrue);
-      auth.signOut();
+      await auth.signOut();
       await auth.signIn('admin', '123456');
       await auth.setUserRole(id, 'Driver');
       await auth.setUserActive(id, false);
-      auth.signOut();
+      await auth.signOut();
       await expectLater(auth.signIn('staff', '654321'), throwsException);
     },
   );

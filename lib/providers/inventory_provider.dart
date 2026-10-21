@@ -1,3 +1,4 @@
+// Loads inventory and exposes stock operations to Flutter screens.
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -112,6 +113,25 @@ class InventoryProvider extends ChangeNotifier {
 
   Future<void> receive(String code, double quantity, {String note = ''}) async {
     await repo.receive(code, quantity, note: note);
+    await refresh();
+  }
+
+  Future<void> createItem({
+    required String code,
+    required String name,
+    required String type,
+    required String unit,
+    double initialQuantity = 0,
+    double unitCost = 0,
+  }) async {
+    await repo.createItem(
+      code: code,
+      name: name,
+      type: type,
+      unit: unit,
+      initialQuantity: initialQuantity,
+      unitCost: unitCost,
+    );
     await refresh();
   }
 

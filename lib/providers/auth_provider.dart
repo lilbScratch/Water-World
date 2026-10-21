@@ -1,3 +1,4 @@
+// Manages account setup, sign-in, saved sessions, and user access.
 import 'dart:convert';
 import 'dart:math';
 
@@ -33,6 +34,7 @@ class AuthProvider extends ChangeNotifier {
   final AppDb _appDb;
   static const _defaultManagerUsername = 'admin';
   static const _defaultManagerPin = '123456';
+  static const _activeUserMetadataKey = 'active_user_id';
 
   AppUser? currentUser;
   bool loading = true;
@@ -78,6 +80,33 @@ class AuthProvider extends ChangeNotifier {
       where: 'lower(role) = ?',
       whereArgs: ['unverified'],
     );
+    final savedSession = await db.query(
+      'app_metadata',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [_activeUserMetadataKey],
+      limit: 1,
+    );
+    if (savedSession.isNotEmpty) {
+      final savedUserId = int.tryParse(savedSession.first['value'].toString());
+      final users = savedUserId == null
+          ? <Map<String, Object?>>[]
+          : await db.query(
+              'local_users',
+              where: 'id = ? AND active = 1',
+              whereArgs: [savedUserId],
+              limit: 1,
+            );
+      if (users.isEmpty) {
+        await db.delete(
+          'app_metadata',
+          where: 'key = ?',
+          whereArgs: [_activeUserMetadataKey],
+        );
+      } else {
+        currentUser = AppUser.fromMap(users.first);
+      }
+    }
     pendingSync =
         Sqflite.firstIntValue(
           await db.rawQuery(
@@ -210,10 +239,20 @@ class AuthProvider extends ChangeNotifier {
       throw Exception('บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้จัดการ');
     }
     currentUser = AppUser.fromMap(row);
+    await db.insert('app_metadata', {
+      'key': _activeUserMetadataKey,
+      'value': currentUser!.id.toString(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
     notifyListeners();
   }
 
-  void signOut() {
+  Future<void> signOut() async {
+    final db = await _appDb.database;
+    await db.delete(
+      'app_metadata',
+      where: 'key = ?',
+      whereArgs: [_activeUserMetadataKey],
+    );
     currentUser = null;
     notifyListeners();
   }

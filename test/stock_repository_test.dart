@@ -61,6 +61,28 @@ void main() {
   });
 
   group('StockRepository', () {
+    test('new inventory item can be created and received', () async {
+      await repo.createItem(
+        code: 'FILM_600',
+        name: 'ฟิล์ม 600',
+        type: 'raw',
+        unit: 'ม้วน',
+      );
+      await repo.receive('FILM_600', 20);
+      expect((await repo.itemByCode('FILM_600'))!.currentQuantity, 20);
+    });
+    test('LINE event updates stock only once when retried', () async {
+      expect(
+        await repo.applyLineCommand('line-event-1', 'PET_350', 20),
+        isTrue,
+      );
+      expect(
+        await repo.applyLineCommand('line-event-1', 'PET_350', 20),
+        isFalse,
+      );
+      final item = await repo.itemByCode('PET_350');
+      expect(item!.currentQuantity, 20);
+    });
     test('รับสินค้าเข้าคลังแล้วจำนวนคงเหลือเพิ่มขึ้น', () async {
       await repo.receive('PET_350', 120, note: 'ทดสอบรับสินค้า');
 

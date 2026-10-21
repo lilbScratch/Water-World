@@ -1,3 +1,4 @@
+// Applies stock changes safely and reads inventory history and policies.
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -10,6 +11,7 @@ import 'app_db.dart';
 
 part 'order_operations.dart';
 part 'analytics_operations.dart';
+part 'demo_data_operations.dart';
 part 'planning_data_operations.dart';
 
 class StockRepository {
@@ -67,6 +69,54 @@ class StockRepository {
     final result = await db.rawQuery('SELECT COUNT(*) AS total FROM items');
 
     return (result.first['total'] as num).toInt();
+  }
+
+  Future<void> createItem({
+    required String code,
+    required String name,
+    required String type,
+    required String unit,
+    double initialQuantity = 0,
+    double unitCost = 0,
+  }) async {
+    final cleanCode = code.trim().toUpperCase();
+    if (!RegExp(r'^[A-Z0-9_]{2,32}$').hasMatch(cleanCode) ||
+        name.trim().isEmpty ||
+        unit.trim().isEmpty ||
+        !{'raw', 'finished'}.contains(type) ||
+        !initialQuantity.isFinite ||
+        initialQuantity < 0 ||
+        !unitCost.isFinite ||
+        unitCost < 0) {
+      throw AppException('กรอกรหัส ชื่อ ประเภท และหน่วยสินค้าให้ถูกต้อง');
+    }
+    final db = await appDb.database;
+    try {
+      await db.transaction((txn) async {
+        await txn.insert('items', {
+          'code': cleanCode,
+          'name': name.trim(),
+          'item_type': type,
+          'unit': unit.trim(),
+          'current_quantity': initialQuantity,
+          'unit_cost': unitCost,
+        });
+        if (initialQuantity > 0) {
+          await _insertStockTransaction(
+            txn,
+            code: cleanCode,
+            name: name.trim(),
+            type: 'receive',
+            quantity: initialQuantity,
+            before: 0,
+            after: initialQuantity,
+            note: 'ยอดตั้งต้น',
+          );
+        }
+      });
+    } on DatabaseException {
+      throw AppException('รหัสสินค้า $cleanCode มีอยู่แล้ว');
+    }
   }
 
   // ค้นหาสินค้าจากรหัส
@@ -170,6 +220,24 @@ class StockRepository {
     await _change(code, delta, 'adjust', note);
   }
 
+  /// Applies a reviewed LINE request once, even if the server acknowledgement fails.
+  Future<bool> applyLineCommand(
+    String eventId,
+    String code,
+    double delta,
+  ) async {
+    if (eventId.isEmpty || !delta.isFinite || delta == 0) {
+      throw AppException('คำขอจาก LINE ไม่ถูกต้อง');
+    }
+    return _change(
+      code,
+      delta,
+      'line',
+      'LINE event $eventId',
+      externalEventId: eventId,
+    );
+  }
+
   // อ่านชื่อคอลัมน์ ใช้ได้ทั้ง Database และ Transaction
   Future<Set<String>> _tableColumns(
     DatabaseExecutor db,
@@ -191,6 +259,7 @@ class StockRepository {
     required double after,
     String note = '',
     Object? itemId,
+    String? externalEventId,
   }) async {
     final columns = await _tableColumns(txn, 'stock_transactions');
 
@@ -202,6 +271,7 @@ class StockRepository {
       'balance_after': after,
       'note': note,
       'created_at': DateTime.now().toIso8601String(),
+      'external_event_id': externalEventId,
 
       // รองรับคอลัมน์จากฐานข้อมูลรุ่นเก่า
       'item_id': itemId,
@@ -219,19 +289,30 @@ class StockRepository {
   }
 
   // เปลี่ยนยอดสต๊อกและบันทึกประวัติ
-  Future<void> _change(
+  Future<bool> _change(
     String code,
     double delta,
     String type,
-    String note,
-  ) async {
+    String note, {
+    String? externalEventId,
+  }) async {
     if (delta == 0) {
       throw AppException('ไม่มีการเปลี่ยนแปลงจำนวนสินค้า');
     }
 
     final db = await appDb.database;
 
-    await db.transaction((txn) async {
+    return db.transaction((txn) async {
+      if (externalEventId != null) {
+        final prior = await txn.query(
+          'stock_transactions',
+          columns: ['id'],
+          where: 'external_event_id = ?',
+          whereArgs: [externalEventId],
+          limit: 1,
+        );
+        if (prior.isNotEmpty) return false;
+      }
       final rows = await txn.query(
         'items',
         where: 'code = ?',
@@ -272,6 +353,7 @@ class StockRepository {
         after: next,
         note: note,
         itemId: row['id'],
+        externalEventId: externalEventId,
       );
       await _queueSync(
         txn,
@@ -286,6 +368,7 @@ class StockRepository {
           'note': note,
         },
       );
+      return true;
     });
   }
 

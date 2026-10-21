@@ -1,3 +1,4 @@
+// Shared stock, item, and risk data types used by the app.
 class AppException implements Exception {
   final String message;
 
@@ -135,6 +136,7 @@ const Map<String, String> kTxLabels = {
   'production_output': 'ผลิตสินค้า',
   'dispatch': 'จ่ายออก',
   'adjust': 'ปรับยอด',
+  'line': 'คำขอจาก LINE',
 };
 
 const Map<String, String> kHistoryFilters = {
@@ -144,6 +146,7 @@ const Map<String, String> kHistoryFilters = {
   'production_output': 'ผลิตสินค้า',
   'dispatch': 'จ่ายออก',
   'adjust': 'ปรับยอด',
+  'line': 'คำขอจาก LINE',
 };
 
 enum StockRiskLevel { normal, warning, critical }

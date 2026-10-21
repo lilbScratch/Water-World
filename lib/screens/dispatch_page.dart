@@ -1,3 +1,4 @@
+// Records dispatch of finished products and delivery details.
 import 'package:flutter/material.dart';
 import 'stock_action_form.dart';
 

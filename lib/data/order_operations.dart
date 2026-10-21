@@ -1,3 +1,4 @@
+// Checks, reserves, produces, fulfills, and cancels B2B orders.
 part of 'stock_repository.dart';
 
 extension OrderOperations on StockRepository {

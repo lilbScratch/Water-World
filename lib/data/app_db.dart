@@ -1,3 +1,5 @@
+// Owns the local SQLite database, schema upgrades, and starter records.
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -5,7 +7,10 @@ class AppDb {
   AppDb._internal() : _factory = null, _customPath = null;
 
   /// สร้างฐานข้อมูลแยกสำหรับการทดสอบ
+  // Keep simple test-facing names while storing these as private configuration.
+  // ignore: prefer_initializing_formals
   AppDb.forTesting({required DatabaseFactory factory, required String path})
+    // ignore: prefer_initializing_formals
     : _factory = factory,
       _customPath = path;
 
@@ -18,7 +23,7 @@ class AppDb {
   Database? _database;
 
   static const String _databaseName = 'water_world.db';
-  static const int _databaseVersion = 8;
+  static const int _databaseVersion = 9;
 
   // --------------------------------------------------
   // DATABASE
@@ -38,7 +43,7 @@ class AppDb {
       path = join(dbPath, _databaseName);
     }
 
-    print('WATER WORLD DB PATH: $path');
+    debugPrint('WATER WORLD DB PATH: $path');
 
     final factory = _factory ?? databaseFactory;
 
@@ -98,6 +103,12 @@ class AppDb {
 
   Future<void> _createSchema(DatabaseExecutor db) async {
     await db.execute('''
+      CREATE TABLE IF NOT EXISTS app_metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
       CREATE TABLE IF NOT EXISTS items (
         code TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -142,6 +153,7 @@ class AppDb {
         tx_type TEXT NOT NULL DEFAULT '',
         quantity REAL NOT NULL DEFAULT 0,
         balance_after REAL NOT NULL DEFAULT 0,
+        external_event_id TEXT,
         note TEXT,
         created_at TEXT
       )
@@ -326,7 +338,7 @@ class AppDb {
     if (!exists) {
       await db.execute('ALTER TABLE "$table" ADD COLUMN "$column" $definition');
 
-      print('DB MIGRATION: added $table.$column');
+      debugPrint('DB MIGRATION: added $table.$column');
     }
   }
 
@@ -393,6 +405,11 @@ class AppDb {
     );
     await _ensureColumn(db, 'stock_transactions', 'note', 'TEXT');
     await _ensureColumn(db, 'stock_transactions', 'created_at', 'TEXT');
+    await _ensureColumn(db, 'stock_transactions', 'external_event_id', 'TEXT');
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS stock_external_event_id '
+      'ON stock_transactions(external_event_id)',
+    );
 
     // recipes
     await _ensureColumn(db, 'recipes', 'product_code', 'TEXT');
@@ -450,11 +467,9 @@ class AppDb {
 
     final columns = await db.rawQuery('PRAGMA table_info(stock_transactions)');
 
-    print('=== STOCK TRANSACTIONS COLUMNS ===');
-    for (final column in columns) {
-      print(column['name']);
-    }
-    print('==================================');
+    debugPrint(
+      'STOCK TRANSACTIONS COLUMNS: ${columns.map((column) => column['name']).join(', ')}',
+    );
   }
 
   // --------------------------------------------------

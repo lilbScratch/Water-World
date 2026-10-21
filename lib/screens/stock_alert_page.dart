@@ -1,3 +1,4 @@
+// Groups inventory items by their current stock risk level.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -370,7 +371,7 @@ class _StockPolicyDialogState extends State<_StockPolicyDialog> {
             const SizedBox(height: 10),
 
             DropdownButtonFormField<double>(
-              value: z,
+              initialValue: z,
               decoration: inputDecoration('ระดับการบริการ'),
               items: const [
                 DropdownMenuItem(value: 1.28, child: Text('90%')),

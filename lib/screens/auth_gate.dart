@@ -1,3 +1,4 @@
+// Chooses the sign-in screen or the authenticated app shell.
 import '../thai_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -250,10 +251,11 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => _error = error.toString().replaceFirst('Exception: ', ''),
         );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

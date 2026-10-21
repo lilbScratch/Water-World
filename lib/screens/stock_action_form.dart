@@ -1,3 +1,4 @@
+// Shared form fields and validation for stock actions.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -60,7 +61,7 @@ class _StockActionFormState extends State<StockActionForm> {
         padding: const EdgeInsets.all(16),
         children: [
           DropdownButtonFormField<String>(
-            value: code,
+            initialValue: code,
             decoration: const InputDecoration(
               labelText: 'เลือกสินค้า',
               border: OutlineInputBorder(),
@@ -149,7 +150,7 @@ class _StockActionFormState extends State<StockActionForm> {
           break;
       }
 
-      if (!mounted) return;
+      if (!context.mounted) return;
 
       ScaffoldMessenger.of(
         context,
@@ -157,7 +158,7 @@ class _StockActionFormState extends State<StockActionForm> {
 
       Navigator.pop(context);
     } catch (error) {
-      if (!mounted) return;
+      if (!context.mounted) return;
 
       ScaffoldMessenger.of(
         context,

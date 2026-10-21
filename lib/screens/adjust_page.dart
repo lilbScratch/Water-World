@@ -1,3 +1,4 @@
+// UI for correcting an item balance with a reason.
 import 'package:flutter/material.dart';
 import 'stock_action_form.dart';
 

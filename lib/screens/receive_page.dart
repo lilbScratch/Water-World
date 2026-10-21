@@ -1,3 +1,4 @@
+// Records newly received raw materials.
 import 'package:flutter/material.dart';
 import 'stock_action_form.dart';
 

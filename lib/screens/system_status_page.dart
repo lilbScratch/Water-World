@@ -1,3 +1,4 @@
+// Displays local app and database status information.
 import '../thai_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

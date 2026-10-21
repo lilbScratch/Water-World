@@ -1,3 +1,4 @@
+// Displays stock movement history with transaction filters.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,7 +27,7 @@ class HistoryPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(12),
             child: DropdownButtonFormField<String>(
-              value: provider.historyFilter,
+              initialValue: provider.historyFilter,
               decoration: const InputDecoration(
                 labelText: 'กรองประวัติ',
                 border: OutlineInputBorder(),

@@ -1,3 +1,4 @@
+// Collects order details and previews material availability.
 part of 'b2b_page.dart';
 
 class _B2BOrderDialog extends StatefulWidget {

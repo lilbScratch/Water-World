@@ -73,7 +73,7 @@ void main() {
     final appDb = AppDb.forTesting(factory: databaseFactoryFfi, path: path);
     try {
       final db = await appDb.database;
-      expect(await db.getVersion(), 8);
+      expect(await db.getVersion(), 9);
       expect(
         (await db.query('b2b_order_lines')).single['reserved_finished'],
         3,
@@ -84,6 +84,20 @@ void main() {
       );
       expect((await db.query('local_users')).single['id'], 7);
       expect((await db.query('items')).single['reserved_quantity'], 3);
+      expect(
+        (await db.rawQuery(
+          'PRAGMA table_info(stock_transactions)',
+        )).map((column) => column['name']),
+        contains('external_event_id'),
+      );
+      expect(
+        await db.query(
+          'sqlite_master',
+          where: 'name = ?',
+          whereArgs: ['app_metadata'],
+        ),
+        isNotEmpty,
+      );
       expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
       expect(
         (await db.rawQuery('PRAGMA integrity_check')).single.values.single,

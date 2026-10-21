@@ -1,3 +1,4 @@
+// Builds a suggested purchase order from stock planning results.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -149,7 +150,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         orderItems,
       );
 
-      if (!mounted) return;
+      if (!context.mounted) return;
 
       showAppMessage(context, 'บันทึกร่างรายการสั่งซื้อเลขที่ $id แล้ว');
 
@@ -171,7 +172,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         ),
       );
     } catch (error) {
-      if (mounted) {
+      if (context.mounted) {
         showAppMessage(context, '$error');
       }
     } finally {

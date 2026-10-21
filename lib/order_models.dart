@@ -1,3 +1,4 @@
+// Immutable planning results used to check B2B order feasibility.
 import 'models.dart';
 
 class ProductPlan {

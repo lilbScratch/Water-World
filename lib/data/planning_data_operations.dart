@@ -1,3 +1,4 @@
+// Stores production recipes and purchase receipt history.
 part of 'stock_repository.dart';
 
 extension PlanningDataOperations on StockRepository {

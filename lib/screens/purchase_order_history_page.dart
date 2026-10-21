@@ -1,3 +1,4 @@
+// Shows previously generated purchase order drafts.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -235,7 +236,7 @@ class _PurchaseOrderHistoryPageState extends State<PurchaseOrderHistoryPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               itemCount: orders.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final order = orders[index];
                 final id = order['id']?.toString() ?? '-';

@@ -1,3 +1,4 @@
+// Converts internal roles and order states into Thai UI labels.
 String roleLabel(Object? role) =>
     switch (role.toString().trim().toLowerCase()) {
       'manager' || 'admin' => 'ผู้จัดการ',

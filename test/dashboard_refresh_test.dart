@@ -63,6 +63,8 @@ void main() {
       () => Future<void>.delayed(const Duration(milliseconds: 250)),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('สต็อกและแจ้งเตือน'));
+    await tester.pumpAndSettle();
     expect(find.text('20.00'), findsOneWidget);
     await tester.tap(find.byTooltip('รีเฟรชภาพรวม'));
     await tester.runAsync(
@@ -71,7 +73,22 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('20.00'), findsOneWidget);
-    expect(find.textContaining('4.00 พร้อมใช้'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.textContaining('4.00 พร้อมส่ง'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.textContaining('4.00 พร้อมส่ง'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('จัดการบัญชีผู้ใช้'),
+      -250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await Scrollable.ensureVisible(
+      tester.element(find.text('จัดการบัญชีผู้ใช้')),
+      alignment: 0.3,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('จัดการบัญชีผู้ใช้'));
     await tester.pump();
     await tester.runAsync(

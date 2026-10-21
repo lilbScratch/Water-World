@@ -1,3 +1,4 @@
+// Provides app navigation, account actions, and the selected feature page.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -58,33 +59,32 @@ class _MainShellState extends State<MainShell> {
         title: Text('Water World • ${auth.currentUser?.displayName ?? ''}'),
         actions: [
           PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'logout') auth.signOut();
-              if (value == 'status') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SystemStatusPage()),
-                );
-              }
-              if (value == 'users') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AdminUsersPage()),
-                );
-              }
-              if (value == 'recipes') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RecipeSetupPage()),
-                );
-              }
-              if (value == 'receipts') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PurchaseReceiptsPage(),
-                  ),
-                );
+            onSelected: (value) async {
+              switch (value) {
+                case 'logout':
+                  await auth.signOut();
+                case 'status':
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SystemStatusPage()),
+                  );
+                case 'users':
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminUsersPage()),
+                  );
+                case 'recipes':
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RecipeSetupPage()),
+                  );
+                case 'receipts':
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PurchaseReceiptsPage(),
+                    ),
+                  );
               }
             },
             itemBuilder: (_) => [
