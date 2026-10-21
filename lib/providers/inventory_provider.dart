@@ -116,6 +116,13 @@ class InventoryProvider extends ChangeNotifier {
     await refresh();
   }
 
+  Future<void> receiveMany(
+    List<({String code, double quantity, String note})> receipts,
+  ) async {
+    await repo.receiveMany(receipts);
+    await refresh();
+  }
+
   Future<void> createItem({
     required String code,
     required String name,

@@ -184,6 +184,74 @@ class StockRepository {
     await _change(code, quantity, 'receive', note);
   }
 
+  // บันทึกรับเข้าหลายรายการพร้อมกัน โดยยกเลิกทั้งหมดหากมีรายการผิดพลาด
+  Future<void> receiveMany(
+    List<({String code, double quantity, String note})> receipts,
+  ) async {
+    if (receipts.isEmpty) {
+      throw AppException('เพิ่มสินค้าอย่างน้อย 1 รายการก่อนบันทึก');
+    }
+
+    final seenCodes = <String>{};
+    for (final receipt in receipts) {
+      if (receipt.quantity <= 0 || !receipt.quantity.isFinite) {
+        throw AppException('จำนวนรับเข้าต้องมากกว่า 0');
+      }
+      if (!seenCodes.add(receipt.code)) {
+        throw AppException('เลือกสินค้าแต่ละรายการได้เพียงครั้งเดียว');
+      }
+    }
+
+    final db = await appDb.database;
+    await db.transaction((txn) async {
+      for (final receipt in receipts) {
+        final rows = await txn.query(
+          'items',
+          where: 'code = ?',
+          whereArgs: [receipt.code],
+          limit: 1,
+        );
+        if (rows.isEmpty) {
+          throw AppException('ไม่พบสินค้า ${receipt.code}');
+        }
+
+        final row = rows.first;
+        final before = (row['current_quantity'] as num).toDouble();
+        final after = before + receipt.quantity;
+        await txn.update(
+          'items',
+          {'current_quantity': after},
+          where: 'code = ?',
+          whereArgs: [receipt.code],
+        );
+        await _insertStockTransaction(
+          txn,
+          code: receipt.code,
+          name: row['name']?.toString() ?? receipt.code,
+          type: 'receive',
+          quantity: receipt.quantity,
+          before: before,
+          after: after,
+          note: receipt.note,
+          itemId: row['id'],
+        );
+        await _queueSync(
+          txn,
+          entityType: 'stock',
+          entityId: receipt.code,
+          operation: 'adjust',
+          payload: {
+            'code': receipt.code,
+            'delta': receipt.quantity,
+            'balance': after,
+            'type': 'receive',
+            'note': receipt.note,
+          },
+        );
+      }
+    });
+  }
+
   // จ่ายสินค้าออกจากคลัง
   Future<void> dispatch(
     String code,

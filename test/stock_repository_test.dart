@@ -97,6 +97,46 @@ void main() {
       expect((result.first['current_quantity'] as num).toDouble(), 120);
     });
 
+    test('รับวัตถุดิบหลายรายการในธุรกรรมเดียว', () async {
+      await repo.createItem(
+        code: 'FILM_600',
+        name: 'ฟิล์ม 600',
+        type: 'raw',
+        unit: 'ม้วน',
+      );
+
+      await repo.receiveMany([
+        (code: 'PET_350', quantity: 12, note: 'ใบส่งของ A'),
+        (code: 'FILM_600', quantity: 3, note: 'ใบส่งของ A'),
+      ]);
+
+      expect((await repo.itemByCode('PET_350'))!.currentQuantity, 12);
+      expect((await repo.itemByCode('FILM_600'))!.currentQuantity, 3);
+      final receipts = await db.query(
+        'stock_transactions',
+        where: "tx_type = 'receive' AND note = ?",
+        whereArgs: ['ใบส่งของ A'],
+      );
+      expect(receipts, hasLength(2));
+    });
+
+    test('รับหลายรายการไม่บันทึกบางส่วนเมื่อพบรายการผิด', () async {
+      await expectLater(
+        repo.receiveMany([
+          (code: 'PET_350', quantity: 12, note: ''),
+          (code: 'MISSING', quantity: 3, note: ''),
+        ]),
+        throwsA(isA<Exception>()),
+      );
+
+      expect((await repo.itemByCode('PET_350'))!.currentQuantity, 0);
+      final receipts = await db.query(
+        'stock_transactions',
+        where: "tx_type = 'receive' AND item_code = 'PET_350'",
+      );
+      expect(receipts, isEmpty);
+    });
+
     test('ผลิตสินค้าแล้ววัตถุดิบลดและสินค้าสำเร็จรูปเพิ่ม', () async {
       await repo.receive('PET_350', 20);
 
